@@ -8,26 +8,26 @@
 
 # ☀️ SunPulse
 
-**Piattaforma di monitoraggio per impianti fotovoltaici con integrazione ZCS Azzurro Portal**
+**Solar photovoltaic monitoring platform with ZCS Azzurro Portal integration**
 
-SunPulse è una dashboard completa per il monitoraggio real-time di impianti fotovoltaici. Integra le API ZCS Azzurro per raccogliere dati di produzione, consumo, batterie e allarmi.
+SunPulse is a comprehensive dashboard for real-time monitoring of solar PV systems. It integrates with ZCS Azzurro APIs to collect production, consumption, battery and alarm data.
 
 ---
 
 ## ✨ Features
 
-- 📊 **Dashboard Real-time** - Visualizzazione dati in tempo reale
-- 📈 **Analisi Storiche** - Grafici produzione/consumo con aggregazioni
-- 🔔 **Gestione Allarmi** - Monitoraggio e notifiche allarmi dispositivi
-- 🔋 **Stato Batterie** - Monitoraggio SOC e cicli batteria
-- ⚡ **Cache Intelligente** - Multi-layer caching (Memory + Redis)
-- 🛡️ **Resilienza** - Circuit breaker per fault tolerance
-- 🔐 **Autenticazione** - Auth0 integration
-- 🐳 **Docker Ready** - Deploy con un comando
+- 📊 **Real-time Dashboard** - Live data visualization
+- 📈 **Historical Analysis** - Production/consumption charts with aggregations
+- 🔔 **Alarm Management** - Device alarm monitoring and notifications
+- 🔋 **Battery Status** - SOC and battery cycle monitoring
+- ⚡ **Smart Caching** - Multi-layer caching (Memory + Redis)
+- 🛡️ **Resilience** - Circuit breaker for fault tolerance
+- 🔐 **Authentication** - Auth0 integration
+- 🐳 **Docker Ready** - Deploy with a single command
 
 ---
 
-## 🏗️ Architettura
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -66,47 +66,47 @@ SunPulse è una dashboard completa per il monitoraggio real-time di impianti fot
 
 ## 🚀 Quick Start
 
-### Prerequisiti
+### Prerequisites
 
 - Docker & Docker Compose
-- 8GB RAM disponibili
-- Credenziali API ZCS Azzurro
+- 8GB available RAM
+- ZCS Azzurro API credentials
 
-### Installazione
+### Installation
 
 ```bash
-# 1. Clona il repository
-git clone https://github.com/yourusername/sunpulse.git
+# 1. Clone the repository
+git clone https://github.com/tommasinigiovanni/SunPulse.git
 cd sunpulse
 
-# 2. Copia e configura le variabili d'ambiente
+# 2. Copy and configure environment variables
 cp .env.example .env
-# Modifica .env con le tue credenziali
+# Edit .env with your credentials
 
-# 3. Avvia tutti i servizi
+# 3. Start all services
 docker-compose up -d
 
-# 4. Verifica lo stato
+# 4. Check status
 docker-compose ps
 ```
 
-### Accesso
+### Access
 
-| Servizio | URL | Descrizione |
-|----------|-----|-------------|
-| Frontend | http://localhost:3000 | Dashboard principale |
+| Service | URL | Description |
+|---------|-----|-------------|
+| Frontend | http://localhost:3000 | Main dashboard |
 | Backend API | http://localhost:8000 | REST API |
 | API Docs | http://localhost:8000/docs | Swagger UI |
-| N8N | http://localhost:5678 | Automazioni |
+| N8N | http://localhost:5678 | Automations |
 
 ---
 
-## ⚙️ Configurazione
+## ⚙️ Configuration
 
-### Variabili d'Ambiente
+### Environment Variables
 
 ```bash
-# ZCS API (obbligatorio)
+# ZCS API (required)
 ZCS_API_URL=https://third.zcsazzurroportal.com:19003/
 ZCS_API_AUTH=Zcs YOUR_TOKEN
 ZCS_CLIENT_CODE=YOUR_CLIENT_CODE
@@ -123,31 +123,31 @@ REDIS_PASSWORD=your_secure_password
 INFLUXDB_ADMIN_PASSWORD=your_secure_password
 ```
 
-### Ottenere Credenziali ZCS
+### Getting ZCS Credentials
 
-1. Contatta [ZCS Azzurro](https://www.zcsazzurro.com/it/documentazione) per richiedere accesso API
-2. Riceverai: `client code` e `authorization token`
-3. Identifica le `thingKey` dei tuoi dispositivi
+1. Contact [ZCS Azzurro](https://www.zcsazzurro.com/it/documentazione) to request API access
+2. You will receive: `client code` and `authorization token`
+3. Identify your devices' `thingKey`
 
 ---
 
-## 📁 Struttura Progetto
+## 📁 Project Structure
 
 ```
 sunpulse/
-├── docker-compose.yml      # Orchestrazione servizi
-├── .env.example            # Template variabili ambiente
-├── README.md               # Documentazione
-├── TODO.md                 # Task e roadmap
-├── LICENSE                 # Licenza MIT
-├── doc/                    # Documentazione tecnica
-│   ├── context.md          # Knowledge base progetto
-│   └── *.pdf               # Specifiche ZCS
+├── docker-compose.yml      # Service orchestration
+├── .env.example            # Environment template
+├── README.md               # Documentation
+├── TODO.md                 # Tasks and roadmap
+├── LICENSE                 # MIT License
+├── doc/                    # Technical documentation
+│   ├── context.md          # Project knowledge base
+│   └── *.pdf               # ZCS specifications
 ├── modules/
 │   ├── backend/            # FastAPI application
 │   │   ├── app/
 │   │   │   ├── api/        # REST endpoints
-│   │   │   ├── config/     # Configurazione
+│   │   │   ├── config/     # Configuration
 │   │   │   ├── models/     # Data models
 │   │   │   ├── services/   # Business logic
 │   │   │   └── utils/      # Utilities
@@ -177,40 +177,40 @@ sunpulse/
 ### Health
 ```
 GET  /api/v1/health/           # Health check
-GET  /api/v1/health/detailed   # Status dettagliato
+GET  /api/v1/health/detailed   # Detailed status
 ```
 
 ### Devices
 ```
-GET  /api/v1/devices/          # Lista dispositivi
-GET  /api/v1/devices/{id}      # Dettaglio dispositivo
-GET  /api/v1/devices/{id}/realtime   # Dati real-time
-GET  /api/v1/devices/{id}/historic   # Dati storici
+GET  /api/v1/devices/          # List devices
+GET  /api/v1/devices/{id}      # Device details
+GET  /api/v1/devices/{id}/realtime   # Real-time data
+GET  /api/v1/devices/{id}/historic   # Historical data
 ```
 
 ### Data
 ```
-GET  /api/v1/data/realtime     # Dati aggregati real-time
-GET  /api/v1/data/historical   # Dati storici sistema
-GET  /api/v1/data/summary      # Summary giornaliero
+GET  /api/v1/data/realtime     # Aggregated real-time data
+GET  /api/v1/data/historical   # System historical data
+GET  /api/v1/data/summary      # Daily summary
 ```
 
 ### Alarms
 ```
-GET  /api/v1/alarms/           # Lista allarmi
-GET  /api/v1/alarms/summary    # Summary allarmi attivi
+GET  /api/v1/alarms/           # List alarms
+GET  /api/v1/alarms/summary    # Active alarms summary
 ```
 
 ---
 
-## 🛠️ Stack Tecnologico
+## 🛠️ Tech Stack
 
 ### Backend
-- **FastAPI** - Web framework async
-- **PostgreSQL** - Database relazionale
-- **InfluxDB** - Database time-series
-- **Redis** - Cache e message broker
-- **Celery** - Task queue e scheduling
+- **FastAPI** - Async web framework
+- **PostgreSQL** - Relational database
+- **InfluxDB** - Time-series database
+- **Redis** - Cache and message broker
+- **Celery** - Task queue and scheduling
 
 ### Frontend
 - **React 18** - UI library
@@ -219,7 +219,7 @@ GET  /api/v1/alarms/summary    # Summary allarmi attivi
 - **Auth0** - Authentication
 
 ### Infrastructure
-- **Docker** - Containerizzazione
+- **Docker** - Containerization
 - **Nginx** - Reverse proxy
 - **N8N** - Workflow automation
 
@@ -227,66 +227,66 @@ GET  /api/v1/alarms/summary    # Summary allarmi attivi
 
 ## 📊 Task Scheduling
 
-| Task | Frequenza | Descrizione |
+| Task | Frequency | Description |
 |------|-----------|-------------|
-| `collect_realtime_data` | 2 min | Raccolta dati produzione |
-| `collect_alarm_data` | 30 sec | Verifica allarmi |
-| `health_check_task` | 5 min | Health check sistema |
+| `collect_realtime_data` | 2 min | Production data collection |
+| `collect_alarm_data` | 30 sec | Alarm status check |
+| `health_check_task` | 5 min | System health check |
 
 ---
 
 ## 🧪 Development
 
 ```bash
-# Avvia in modalità development
+# Start in development mode
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
-# Logs in tempo reale
+# Real-time logs
 docker-compose logs -f backend
 
-# Ricostruisci dopo modifiche
+# Rebuild after changes
 docker-compose build backend
 docker-compose up -d backend
 
-# Test
+# Tests
 cd modules/backend && pytest
 cd modules/frontend && npm test
 ```
 
 ---
 
-## 📖 Documentazione
+## 📖 Documentation
 
-- [Context File](doc/context.md) - Knowledge base completa del progetto
-- [TODO](TODO.md) - Task, bug e roadmap
-- [API ZCS](doc/) - Specifiche API ZCS Azzurro
+- [Context File](doc/context.md) - Complete project knowledge base
+- [TODO](TODO.md) - Tasks, bugs and roadmap
+- [ZCS API](doc/) - ZCS Azzurro API specifications
 
 ---
 
 ## 🤝 Contributing
 
-1. Fork del repository
-2. Crea branch feature (`git checkout -b feature/amazing-feature`)
-3. Commit delle modifiche (`git commit -m 'Add amazing feature'`)
-4. Push al branch (`git push origin feature/amazing-feature`)
-5. Apri una Pull Request
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 
 ## 📄 License
 
-Distribuito sotto licenza MIT. Vedi [LICENSE](LICENSE) per maggiori informazioni.
+Distributed under MIT License. See [LICENSE](LICENSE) for more information.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- [ZCS Azzurro](https://www.zcsazzurro.com) - API e documentazione
+- [ZCS Azzurro](https://www.zcsazzurro.com) - API and documentation
 - [Refine](https://refine.dev) - Admin framework
 - [FastAPI](https://fastapi.tiangolo.com) - Backend framework
 
 ---
 
 <p align="center">
-  <strong>☀️ SunPulse - Monitora la tua energia solare</strong>
+  <strong>☀️ SunPulse - Monitor your solar energy</strong>
 </p>

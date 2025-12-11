@@ -1,69 +1,69 @@
 # SunPulse - TODO
 
-> **Ultimo aggiornamento:** 2025-12-11  
-> **Legenda:** 🔴 Critico | ⚠️ Alto | 🟡 Medio | 🟢 Basso
+> **Last updated:** 2025-12-11  
+> **Legend:** 🔴 Critical | ⚠️ High | 🟡 Medium | 🟢 Low
 
 ---
 
-## 🔴 BUG CRITICI
+## 🔴 CRITICAL BUGS
 
 ### Backend
 
-- [ ] **[BE-001]** `useDevices.ts:62` - `stats[device.status]++` non valido in TypeScript
+- [ ] **[BE-001]** `useDevices.ts:62` - `stats[device.status]++` invalid in TypeScript
   - File: `modules/frontend/src/hooks/useDevices.ts`
-  - Fix: Usare pattern corretto per incremento
+  - Fix: Use correct increment pattern
   
-- [ ] **[BE-002]** `data.py:177` - `get_settings()` non importato nel blocco try
+- [ ] **[BE-002]** `data.py:177` - `get_settings()` not imported in try block
   - File: `modules/backend/app/api/v1/endpoints/data.py`
-  - Fix: Spostare import `from ....config.settings import get_settings` in alto nel file
+  - Fix: Move import `from ....config.settings import get_settings` to top of file
 
-- [ ] **[BE-003]** `zcs_api_service.py:230` - Chunking usa 23h invece di 24h, può perdere dati
+- [ ] **[BE-003]** `zcs_api_service.py:230` - Chunking uses 23h instead of 24h, may lose data
   - File: `modules/backend/app/services/zcs_api_service.py`
-  - Fix: Cambiare `timedelta(hours=23)` in `timedelta(hours=24)`
+  - Fix: Change `timedelta(hours=23)` to `timedelta(hours=24)`
 
 ### Frontend
 
-- [ ] **[FE-001]** `Dashboard.tsx:27-28` - Stima energia sempre 0 se `daily_energy=0`
+- [ ] **[FE-001]** `Dashboard.tsx:27-28` - Energy estimate always 0 if `daily_energy=0`
   - File: `modules/frontend/src/pages/Dashboard.tsx`
-  - Fix: Aggiungere null safety check
+  - Fix: Add null safety check
 
-- [ ] **[FE-002]** `Dashboard.tsx:133` - Division by zero se `stats.total=0`
+- [ ] **[FE-002]** `Dashboard.tsx:133` - Division by zero if `stats.total=0`
   - File: `modules/frontend/src/pages/Dashboard.tsx`
-  - Fix: Aggiungere guard `stats.total > 0 ? ... : 0`
+  - Fix: Add guard `stats.total > 0 ? ... : 0`
 
-- [ ] **[FE-003]** `DeviceCard.tsx:128` - Conversione `*1000` kWh→Wh potenzialmente errata
+- [ ] **[FE-003]** `DeviceCard.tsx:128` - Conversion `*1000` kWh→Wh potentially wrong
   - File: `modules/frontend/src/components/devices/DeviceCard.tsx`
-  - Fix: Verificare unità dati ZCS e correggere
+  - Fix: Verify ZCS data units and correct
 
-- [ ] **[FE-004]** `PowerChart.tsx:39-87` - Dati simulati invece che reali
+- [ ] **[FE-004]** `PowerChart.tsx:39-87` - Simulated data instead of real
   - File: `modules/frontend/src/components/charts/PowerChart.tsx`
-  - Fix: Implementare fetch da `/api/v1/data/historical`
+  - Fix: Implement fetch from `/api/v1/data/historical`
 
 ---
 
-## ⚠️ PROBLEMI ARCHITETTURALI
+## ⚠️ ARCHITECTURAL ISSUES
 
-- [ ] **[ARCH-001]** Auth Mock sempre attivo
+- [ ] **[ARCH-001]** Auth Mock always active
   - File: `modules/frontend/src/providers/AuthProvider.tsx:80`
-  - Problema: `isDevelopmentMode = true` hardcoded
-  - Fix: Leggere da env `VITE_AUTH_MOCK=true`
+  - Issue: `isDevelopmentMode = true` hardcoded
+  - Fix: Read from env `VITE_AUTH_MOCK=true`
 
-- [ ] **[ARCH-002]** Nessun Error Boundary React
-  - Fix: Creare `modules/frontend/src/components/common/ErrorBoundary.tsx`
+- [ ] **[ARCH-002]** No React Error Boundary
+  - Fix: Create `modules/frontend/src/components/common/ErrorBoundary.tsx`
 
-- [ ] **[ARCH-003]** Missing TypeScript types per ZCS response
-  - Fix: Creare `modules/frontend/src/types/zcs.ts` con tipizzazione completa
+- [ ] **[ARCH-003]** Missing TypeScript types for ZCS response
+  - Fix: Create `modules/frontend/src/types/zcs.ts` with complete typing
 
-- [ ] **[ARCH-004]** Backend non persiste devices in DB
-  - Problema: Devices generati da `thing_keys`, non salvati in PostgreSQL
-  - Fix: Usare tabella `devices` esistente
+- [ ] **[ARCH-004]** Backend doesn't persist devices in DB
+  - Issue: Devices generated from `thing_keys`, not saved in PostgreSQL
+  - Fix: Use existing `devices` table
 
-- [ ] **[ARCH-005]** WebSocket non implementato backend
-  - Fix: Creare endpoint WebSocket per real-time updates
+- [ ] **[ARCH-005]** WebSocket not implemented in backend
+  - Fix: Create WebSocket endpoint for real-time updates
 
-- [ ] **[ARCH-006]** Allarmi commentati/disabilitati
+- [ ] **[ARCH-006]** Alarms commented out/disabled
   - File: `modules/frontend/src/components/devices/DeviceCard.tsx:172-188`
-  - Fix: Riabilitare sezione allarmi con import corretto
+  - Fix: Re-enable alarms section with correct import
 
 ---
 
@@ -71,64 +71,64 @@
 
 ### Dashboard
 
-- [ ] **[UX-001]** Percentuali variazione hardcoded (`+5.2%`, `+12%`, etc.)
+- [ ] **[UX-001]** Hardcoded percentage variations (`+5.2%`, `+12%`, etc.)
   - File: `modules/frontend/src/pages/Dashboard.tsx`
-  - Fix: Calcolare da dati storici reali
+  - Fix: Calculate from real historical data
 
-- [ ] **[UX-002]** Efficienza sistema fissa a 85.5%
-  - Fix: Calcolare da dati reali
+- [ ] **[UX-002]** System efficiency fixed at 85.5%
+  - Fix: Calculate from real data
 
-- [ ] **[UX-003]** Manca loading skeleton per cards
-  - Fix: Usare `<Skeleton>` di Ant Design durante loading
+- [ ] **[UX-003]** Missing loading skeleton for cards
+  - Fix: Use Ant Design `<Skeleton>` during loading
 
-- [ ] **[UX-004]** Manca bottone refresh manuale dashboard
-  - Fix: Aggiungere `<Button>` con `onClick={refetch}`
+- [ ] **[UX-004]** Missing manual dashboard refresh button
+  - Fix: Add `<Button>` with `onClick={refetch}`
 
-- [ ] **[UX-005]** Timestamp ultimo aggiornamento non visibile
-  - Fix: Mostrare "Ultimo aggiornamento: X minuti fa"
+- [ ] **[UX-005]** Last update timestamp not visible
+  - Fix: Show "Last updated: X minutes ago"
 
 ### DeviceList
 
-- [ ] **[UX-006]** Card troppo strette su schermi XL (`xl={4}`)
+- [ ] **[UX-006]** Cards too narrow on XL screens (`xl={4}`)
   - File: `modules/frontend/src/components/devices/DeviceList.tsx:251`
-  - Fix: Cambiare in `xl={6}` o rendere configurabile
+  - Fix: Change to `xl={6}` or make configurable
 
 - [ ] **[UX-007]** No infinite scroll/virtualization
-  - Fix: Implementare virtual list per performance
+  - Fix: Implement virtual list for performance
 
 ### Header
 
-- [ ] **[UX-008]** Notifiche count hardcoded a 3
+- [ ] **[UX-008]** Notification count hardcoded to 3
   - File: `modules/frontend/src/components/layout/Header.tsx:57`
-  - Fix: Collegare a sistema notifiche reale
+  - Fix: Connect to real notification system
 
-- [ ] **[UX-009]** Quick stats overflow su mobile
-  - Fix: Nascondere stats header su viewport < 768px
+- [ ] **[UX-009]** Quick stats overflow on mobile
+  - Fix: Hide header stats on viewport < 768px
 
 ### Mobile
 
-- [ ] **[UX-010]** Header stats visibili su mobile (affollano UI)
-  - Fix: Aggiungere classe `mobile-hidden` agli stats
+- [ ] **[UX-010]** Header stats visible on mobile (clutters UI)
+  - Fix: Add `mobile-hidden` class to stats
 
-- [ ] **[UX-011]** Grafico slider difficile su touch
-  - Fix: Aumentare area touch o disabilitare su mobile
+- [ ] **[UX-011]** Chart slider difficult on touch
+  - Fix: Increase touch area or disable on mobile
 
 ---
 
 ## 🟢 NICE TO HAVE
 
 - [ ] **[NICE-001]** Dark mode theme
-- [ ] **[NICE-002]** Internazionalizzazione (i18n)
-- [ ] **[NICE-003]** Pull-to-refresh su mobile
-- [ ] **[NICE-004]** Toast notifications per errori API
-- [ ] **[NICE-005]** Empty state con illustrazioni
-- [ ] **[NICE-006]** Animazioni transizione pagine
+- [ ] **[NICE-002]** Internationalization (i18n)
+- [ ] **[NICE-003]** Pull-to-refresh on mobile
+- [ ] **[NICE-004]** Toast notifications for API errors
+- [ ] **[NICE-005]** Empty states with illustrations
+- [ ] **[NICE-006]** Page transition animations
 - [ ] **[NICE-007]** PWA support (service worker)
-- [ ] **[NICE-008]** Export dati CSV/PDF
+- [ ] **[NICE-008]** Data export CSV/PDF
 
 ---
 
-## 📋 PAGINE DA COMPLETARE
+## 📋 PAGES TO COMPLETE
 
 - [ ] **[PAGE-001]** Device Detail Page (`/devices/:id`)
   - Effort: 4h
@@ -144,10 +144,10 @@
 
 ---
 
-## 🔧 INFRASTRUTTURA
+## 🔧 INFRASTRUCTURE
 
-- [ ] **[INFRA-001]** Rimuovere Mosquitto se non usato
-- [ ] **[INFRA-002]** Configurare network external per multi-compose
+- [ ] **[INFRA-001]** Remove Mosquitto if unused
+- [ ] **[INFRA-002]** Configure external network for multi-compose
 - [ ] **[INFRA-003]** Pattern `env_dev → .env`
 - [ ] **[INFRA-004]** SSL/HTTPS configuration
 - [ ] **[INFRA-005]** Prometheus metrics
@@ -155,23 +155,22 @@
 
 ---
 
-## 📊 RIEPILOGO
+## 📊 SUMMARY
 
-| Priorità | Count | Status |
+| Priority | Count | Status |
 |----------|-------|--------|
-| 🔴 Critico | 7 | 0/7 completati |
-| ⚠️ Alto | 6 | 0/6 completati |
-| 🟡 Medio | 11 | 0/11 completati |
-| 🟢 Basso | 8 | 0/8 completati |
-| 📋 Pagine | 4 | 0/4 completati |
-| 🔧 Infra | 6 | 0/6 completati |
-| **TOTALE** | **42** | **0/42** |
+| 🔴 Critical | 7 | 0/7 completed |
+| ⚠️ High | 6 | 0/6 completed |
+| 🟡 Medium | 11 | 0/11 completed |
+| 🟢 Low | 8 | 0/8 completed |
+| 📋 Pages | 4 | 0/4 completed |
+| 🔧 Infra | 6 | 0/6 completed |
+| **TOTAL** | **42** | **0/42** |
 
 ---
 
-## 📝 NOTE
+## 📝 NOTES
 
-- Prioritizzare fix bug critici prima di nuove feature
-- Review codice completata il 2025-12-11
-- Backend e Frontend entrambi hanno issues da risolvere
-
+- Prioritize critical bug fixes before new features
+- Code review completed on 2025-12-11
+- Both backend and frontend have issues to resolve
