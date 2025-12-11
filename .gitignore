@@ -1,2 +1,10 @@
 .env
 .DS_Store
+
+# Docker volumes - dati runtime
+modules/postgres/data/
+modules/influxdb/data/
+modules/influxdb/config/
+modules/mosquitto/data/
+modules/n8n/data/
+modules/n8n/workflows/

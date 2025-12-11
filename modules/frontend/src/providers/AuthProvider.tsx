@@ -77,7 +77,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const redirectUri = window.location.origin;
 
   // Modalità sviluppo se Auth0 non configurato o è il dominio di test
-  const isDevelopmentMode = true; // FORZATO PER TEST
+  const isDevelopmentMode = !domain || !clientId || domain.includes('gt0dev.eu.auth0.com');
 
   if (isDevelopmentMode) {
     console.warn('🔧 Auth0 non configurato correttamente - usando modalità sviluppo');
