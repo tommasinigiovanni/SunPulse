@@ -48,11 +48,16 @@ export const DeviceDetail: React.FC = () => {
     ) || realTimeData[0];
   }, [realTimeData, id]);
 
-  // Estrai dati ZCS raw se disponibili
+  // Estrai dati ZCS raw se disponibili (per potenze istantanee)
   const zcsData = useMemo(() => {
     if (!device?.raw_data?.realtimeData?.params?.value?.[0]) return null;
     const thingKey = device.thing_key || Object.keys(device.raw_data.realtimeData.params.value[0])[0];
     return device.raw_data.realtimeData.params.value[0][thingKey] || null;
+  }, [device]);
+  
+  // Dati energetici giornalieri (calcolati da storico, più affidabili)
+  const dailyEnergy = useMemo(() => {
+    return device?.daily_energy || {};
   }, [device]);
 
   const getStatusIcon = (status: string) => {
@@ -228,25 +233,25 @@ export const DeviceDetail: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#f6ffed', borderRadius: 4 }}>
                 <Text>☀️ Energia Generata</Text>
                 <Text strong style={{ color: '#52c41a' }}>
-                  {(zcsData?.energyGenerating || device.energy_today || 0).toFixed(2)} kWh
+                  {(dailyEnergy.energy_generating || device.energy_today || 0).toFixed(2)} kWh
                 </Text>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#e6f7ff', borderRadius: 4 }}>
                 <Text>⚡ Immesso in Rete</Text>
                 <Text strong style={{ color: '#1890ff' }}>
-                  {(zcsData?.energyExporting || 0).toFixed(2)} kWh
+                  {(dailyEnergy.energy_to_grid || 0).toFixed(2)} kWh
                 </Text>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#f9f0ff', borderRadius: 4 }}>
                 <Text>🔋 Caricato in Batteria</Text>
                 <Text strong style={{ color: '#722ed1' }}>
-                  {(zcsData?.energyCharging || 0).toFixed(2)} kWh
+                  {(dailyEnergy.energy_to_battery || 0).toFixed(2)} kWh
                 </Text>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#fffbe6', borderRadius: 4 }}>
                 <Text>🏠 Autoconsumo</Text>
                 <Text strong style={{ color: '#faad14' }}>
-                  {(zcsData?.energyAutoconsuming || 0).toFixed(2)} kWh
+                  {(dailyEnergy.energy_autoconsuming || 0).toFixed(2)} kWh
                 </Text>
               </div>
             </Space>
@@ -259,25 +264,25 @@ export const DeviceDetail: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#fff2e8', borderRadius: 4 }}>
                 <Text>⚡ Consumo Totale</Text>
                 <Text strong style={{ color: '#fa8c16' }}>
-                  {(zcsData?.energyConsuming || 0).toFixed(2)} kWh
+                  {(dailyEnergy.energy_consuming || 0).toFixed(2)} kWh
                 </Text>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#f6ffed', borderRadius: 4 }}>
                 <Text>☀️ Dal Sole</Text>
                 <Text strong style={{ color: '#52c41a' }}>
-                  {(zcsData?.energyAutoconsuming || 0).toFixed(2)} kWh
+                  {(dailyEnergy.energy_autoconsuming || 0).toFixed(2)} kWh
                 </Text>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#f9f0ff', borderRadius: 4 }}>
                 <Text>🔋 Dalla Batteria</Text>
                 <Text strong style={{ color: '#722ed1' }}>
-                  {(zcsData?.energyDischarging || 0).toFixed(2)} kWh
+                  {(dailyEnergy.energy_from_battery || 0).toFixed(2)} kWh
                 </Text>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#e6f7ff', borderRadius: 4 }}>
                 <Text>🔌 Dalla Rete</Text>
                 <Text strong style={{ color: '#1890ff' }}>
-                  {(zcsData?.energyImporting || 0).toFixed(2)} kWh
+                  {(dailyEnergy.energy_from_grid || 0).toFixed(2)} kWh
                 </Text>
               </div>
             </Space>

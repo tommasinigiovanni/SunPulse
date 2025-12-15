@@ -45,21 +45,19 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
   };
 
   const cardTitle = (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <Space>
-        <Text strong style={{ fontSize: compact ? 14 : 16 }}>
-          {device.name}
-        </Text>
-        <Badge 
-          color={statusInfo.color} 
-          text={
-            <Text style={{ fontSize: 12, color: statusInfo.color }}>
-              {statusInfo.text}
-            </Text>
-          } 
-        />
-      </Space>
-      {getStatusIcon()}
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+        <Tooltip title={device.name}>
+          <Text 
+            strong 
+            ellipsis 
+            style={{ fontSize: compact ? 14 : 16, maxWidth: 120 }}
+          >
+            {device.name}
+          </Text>
+        </Tooltip>
+        {getStatusIcon()}
+      </div>
     </div>
   );
 
@@ -125,7 +123,8 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
           <Statistic
             title="Energia Oggi"
             value={device.daily_energy || 0}
-            formatter={(value) => formatEnergy(Number(value))} // Valore già in Wh dall'API
+            precision={2}
+            suffix="kWh"
             valueStyle={{ 
               fontSize: compact ? 14 : 16,
               color: '#52c41a' 

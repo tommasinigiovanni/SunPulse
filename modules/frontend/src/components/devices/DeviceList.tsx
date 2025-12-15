@@ -60,13 +60,42 @@ export const DeviceList: React.FC<DeviceListProps> = ({
   });
 
   // Usa dati realtime per le statistiche energetiche
-  const { summary: realtimeSummary, data: realtimeData } = useRealTimeData();
+  const { summary: realtimeSummary, data: realtimeData, isLoading: realtimeLoading } = useRealTimeData();
+
+  // Mappa i dispositivi realtime nel formato Device
+  const realtimeDevices = useMemo(() => {
+    if (!realtimeData || realtimeData.length === 0) return [];
+    return realtimeData.map((d: any) => ({
+      id: d.thing_key || d.device_id,
+      name: d.name || `Dispositivo ${d.device_id}`,
+      type: 'inverter' as DeviceType,
+      status: (d.status || 'online') as DeviceStatus,
+      serial_number: d.thing_key || '',
+      current_power: d.power || 0,
+      daily_energy: d.energy_today || d.daily_energy?.energy_generating || 0,
+      total_energy: 0,
+      last_seen: d.last_update,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      // Passa i dati aggiuntivi
+      thing_key: d.thing_key,
+      daily_energy_data: d.daily_energy,
+    }));
+  }, [realtimeData]);
+
+  // Usa dispositivi realtime se disponibili, altrimenti fallback a mock
+  const actualDevices = realtimeDevices.length > 0 ? realtimeDevices : devices;
 
   // Filtra dispositivi con ricerca
   const filteredDevices = useMemo(() => {
-    if (!searchTerm.trim()) return devices;
-    return searchDevices(searchTerm);
-  }, [devices, searchTerm, searchDevices]);
+    if (!searchTerm.trim()) return actualDevices;
+    const term = searchTerm.toLowerCase();
+    return actualDevices.filter((d: any) => 
+      d.name?.toLowerCase().includes(term) || 
+      d.serial_number?.toLowerCase().includes(term) ||
+      d.thing_key?.toLowerCase().includes(term)
+    );
+  }, [actualDevices, searchTerm]);
 
   const handleFilterChange = (key: keyof DeviceFilters, value: any) => {
     setFilters(prev => ({
@@ -224,7 +253,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({
 
       {/* Lista dispositivi */}
       <div style={{ minHeight: 400 }}>
-        {isLoading ? (
+        {(isLoading || realtimeLoading) ? (
           <div style={{ 
             display: 'flex', 
             justifyContent: 'center', 

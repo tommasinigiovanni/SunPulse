@@ -130,15 +130,29 @@ async def get_realtime_data() -> Dict[str, Any]:
                     # Estrai dati reali ZCS e trasforma in formato frontend
                     zcs_device = device_data.get('realtimeData', {}).get('params', {}).get('value', [{}])[0].get(thing_key, {})
                     
+                    # Dati energetici giornalieri per questo dispositivo (da storico)
+                    device_daily = {
+                        "energy_generating": daily_energy.get("energy_generating", 0),
+                        "energy_consuming": daily_energy.get("energy_consuming", 0),
+                        "energy_autoconsuming": daily_energy.get("energy_autoconsuming", 0),
+                        "energy_from_grid": daily_energy.get("energy_importing", 0),
+                        "energy_to_grid": daily_energy.get("energy_exporting", 0),
+                        "energy_to_battery": daily_energy.get("energy_charging", 0),
+                        "energy_from_battery": daily_energy.get("energy_discharging", 0),
+                    }
+                    
                     real_time_device = {
                         "device_id": str(device_id),
                         "thing_key": thing_key,
-                        "name": f"Dispositivo ZCS {device_id}",
+                        "name": f"Inverter ZCS {device_id}",
                         "status": "online",
                         "power": zcs_device.get("powerGenerating", 0),
-                        "energy_today": zcs_device.get("energyGenerating", 0),
+                        "power_consuming": zcs_device.get("powerConsuming", 0),
+                        "energy_today": device_daily["energy_generating"],  # Usa dato storico
+                        "energy_consumed_today": device_daily["energy_consuming"],
                         "battery_soc": zcs_device.get("batterySoC", 0),
                         "last_update": zcs_device.get("lastUpdate", datetime.utcnow().isoformat()),
+                        "daily_energy": device_daily,  # Tutti i dati giornalieri
                         "raw_data": device_data
                     }
                     
