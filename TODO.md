@@ -1,6 +1,6 @@
 # SunPulse - TODO
 
-> **Last updated:** 2025-12-12  
+> **Last updated:** 2025-12-16  
 > **Legend:** 🔴 Critical | ⚠️ High | 🟡 Medium | 🟢 Low
 
 ---
@@ -153,6 +153,105 @@
   - **Effort stimato**: 16-24h
   - **Priorità**: Media
 
+### Status Page
+
+- [ ] **[FEAT-002]** Pagina Status Servizi tipo Statuspage
+  - **Descrizione**: Pagina pubblica che mostra lo stato di tutti i servizi interni e esterni con storico uptime
+  - **Componenti**:
+    - [ ] Endpoint backend `/api/v1/status/services` - stato tutti i servizi
+    - [ ] Endpoint backend `/api/v1/status/history` - storico uptime (24h, 7d, 30d)
+    - [ ] Modello database per storico check (timestamp, service, status, latency)
+    - [ ] Task Celery per health check periodico (ogni 1 min)
+    - [ ] Pagina frontend `/status` con:
+      - [ ] Badge stato per ogni servizio (🟢 Operational, 🟡 Degraded, 🔴 Outage)
+      - [ ] Uptime percentage (99.9%)
+      - [ ] Latency media
+      - [ ] Grafico storico uptime (barre orizzontali tipo statuspage.io)
+      - [ ] Incidenti recenti con timeline
+  - **Servizi da monitorare**:
+    - PostgreSQL
+    - InfluxDB
+    - Redis
+    - Auth Service
+    - Backend API
+    - Celery Workers
+    - ZCS Azzurro API (esterno)
+    - Resend Email (esterno)
+  - **Effort stimato**: 8-12h
+  - **Priorità**: Media
+
+### Documentazione
+
+- [ ] **[FEAT-003]** Collezione Postman/Bruno per API
+  - **Descrizione**: File di collezione che documenta tutti gli endpoint API per testing e sviluppo
+  - **Componenti**:
+    - [ ] File `doc/api/sunpulse.postman_collection.json`
+    - [ ] File `doc/api/sunpulse.bruno/` (cartella Bruno)
+    - [ ] Variabili ambiente (dev, prod)
+    - [ ] Esempi request/response per ogni endpoint
+    - [ ] Test automatici per validazione response
+  - **Endpoints da documentare**:
+    - [ ] Health (4 endpoints)
+    - [ ] Devices (4 endpoints)
+    - [ ] Data (6 endpoints)
+    - [ ] Alarms (5 endpoints)
+    - [ ] Tasks (8 endpoints)
+    - [ ] Notifications (4 endpoints)
+  - **Effort stimato**: 4-6h
+  - **Priorità**: Alta
+  - **Nota**: ⚠️ Aggiornare ad ogni nuovo endpoint!
+
+- [ ] **[FEAT-004]** Documentazione Utente Completa
+  - **Descrizione**: Guida utente completa per l'utilizzo della piattaforma SunPulse
+  - **Componenti**:
+    - [ ] `doc/user-guide/` cartella documentazione
+    - [ ] README con indice navigabile
+    - [ ] Guida installazione e primo avvio
+    - [ ] Tour delle funzionalità (Dashboard, Dispositivi, Analytics, Allarmi, Impostazioni)
+    - [ ] FAQ e troubleshooting
+    - [ ] Screenshot annotati per ogni sezione
+    - [ ] Video tutorial (opzionale)
+  - **Sezioni**:
+    - [ ] 1. Introduzione e requisiti
+    - [ ] 2. Installazione e configurazione
+    - [ ] 3. Primo accesso e setup Auth0
+    - [ ] 4. Dashboard - Panoramica sistema
+    - [ ] 5. Dispositivi - Gestione e monitoraggio
+    - [ ] 6. Analytics - Analisi dati storici
+    - [ ] 7. Allarmi - Gestione notifiche
+    - [ ] 8. Impostazioni - Configurazione sistema
+    - [ ] 9. API - Integrazione esterna
+    - [ ] 10. Troubleshooting
+  - **Effort stimato**: 8-12h
+  - **Priorità**: Media
+
+### Audit Log
+
+- [ ] **[FEAT-005]** Sistema Audit Log Completo
+  - **Descrizione**: Tracciamento di tutte le azioni utente e di sistema per compliance e debugging
+  - **Nota**: Tabella `audit_log` già esiste in PostgreSQL, da implementare middleware e UI
+  - **Componenti Backend**:
+    - [ ] Middleware FastAPI per logging automatico delle richieste
+    - [ ] Servizio `AuditService` per scrittura log
+    - [ ] Endpoint API per query log (`GET /api/v1/audit/`)
+    - [ ] Filtri: per utente, azione, risorsa, periodo
+    - [ ] Retention policy (es. 90 giorni)
+  - **Componenti Frontend**:
+    - [ ] Pagina `/admin/audit` (solo admin)
+    - [ ] Tabella con ricerca e filtri
+    - [ ] Export CSV/JSON
+    - [ ] Dettaglio singola azione
+  - **Azioni da tracciare**:
+    - [ ] Login/Logout utente
+    - [ ] Modifiche impostazioni
+    - [ ] Acknowledge allarmi
+    - [ ] Trigger task manuali
+    - [ ] Invio email/notifiche
+    - [ ] Accesso dati dispositivi
+    - [ ] Errori API critici
+  - **Effort stimato**: 6-8h
+  - **Priorità**: Media
+
 ---
 
 ## 🟢 NICE TO HAVE
@@ -189,6 +288,21 @@
   - File: `modules/frontend/src/pages/Settings.tsx`
   - Tabs: Generale, Notifiche, Dispositivi, API, Sistema
 
+- [ ] **[PAGE-005]** ⚠️ Verificare/Implementare persistenza Settings
+  - **Stato attuale**: La pagina Settings è solo UI, i dati NON vengono salvati
+  - **Da verificare/implementare**:
+    - [ ] Endpoint backend `GET/PUT /api/v1/settings/` per CRUD impostazioni
+    - [ ] Modello database per settings utente
+    - [ ] Frontend: collegare form a API reali (attualmente mock)
+    - [ ] Test: modificare impostazione → riavviare → verificare persistenza
+  - **Impostazioni da persistere**:
+    - [ ] Generale: nome sistema, timezone, valuta, lingua
+    - [ ] Notifiche: email, frequenza report, soglie allarmi
+    - [ ] Dispositivi: nomi custom, soglie alert per dispositivo
+    - [ ] API: chiavi ZCS (solo visualizzazione, no modifica)
+  - **Effort stimato**: 4-6h
+  - **Priorità**: Alta
+
 ---
 
 ## 🔧 INFRASTRUCTURE
@@ -210,10 +324,10 @@
 | ⚠️ High | 6 | 1/6 completed |
 | 🟡 Medium | 15 | **6/15 completed** |
 | 🟢 Low | 8 | 0/8 completed |
-| 🚀 New Features | 1 | 0/1 completed |
-| 📋 Pages | 4 | **4/4 completed** ✅ |
+| 🚀 New Features | 5 | 0/5 completed |
+| 📋 Pages | 5 | 4/5 completed |
 | 🔧 Infra | 6 | 0/6 completed |
-| **TOTAL** | **47** | **18/47** |
+| **TOTAL** | **52** | **18/52** |
 
 ---
 

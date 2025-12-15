@@ -1,5 +1,5 @@
 # ☀️ SunPulse - Context File
-> **Data ultimo aggiornamento:** 2025-12-12  
+> **Data ultimo aggiornamento:** 2025-12-16  
 > **Versione progetto:** v2.0.0  
 > **Stato:** Fase 2 completata, Fase 3 in corso
 
@@ -40,10 +40,14 @@ Piattaforma di monitoraggio impianti fotovoltaici che integra le API ZCS Azzurro
 - [x] PowerChart component ottimizzato
 - [x] Selettore dispositivo
 - [x] Card Consumo/Produzione Giornaliera con suddivisione per fonte
-- [ ] Device Detail Page
-- [ ] Analytics Page
-- [ ] Alarms Page
-- [ ] Settings Page
+- [x] Device Detail Page ✅ 2025-12-12
+- [x] Analytics Page ✅ 2025-12-12
+- [x] Alarms Page ✅ 2025-12-12
+- [x] Settings Page ✅ 2025-12-12
+- [x] Email Notifications (Resend) ✅ 2025-12-16
+- [ ] Status Page
+- [ ] Documentazione API (Postman/Bruno)
+- [ ] Documentazione Utente
 
 ### Fase 4 - Production Ready ⏳ NON INIZIATA
 - [ ] SSL/HTTPS
@@ -370,6 +374,39 @@ DELETE /api/v1/tasks/{id}      # Revoke task
 GET  /api/v1/tasks/workers/stats  # Stats worker
 ```
 
+### Notifications ✨ NEW
+```
+GET  /api/v1/notifications/status       # Stato servizio email
+POST /api/v1/notifications/test         # Invia email di test
+POST /api/v1/notifications/alarm        # Invia notifica allarme
+POST /api/v1/notifications/daily-report # Invia report giornaliero
+```
+
+---
+
+## 9.1 Documentazione API (Postman/Bruno)
+
+> ⚠️ **IMPORTANTE**: Ogni volta che viene creato un nuovo endpoint, aggiornare i file di documentazione API!
+
+### File di Collezione
+
+| File | Descrizione | Stato |
+|------|-------------|-------|
+| `doc/api/sunpulse.postman_collection.json` | Collezione Postman | ⏳ Da creare |
+| `doc/api/sunpulse.bruno/` | Collezione Bruno | ⏳ Da creare |
+| `doc/api/environments/dev.json` | Variabili ambiente dev | ⏳ Da creare |
+| `doc/api/environments/prod.json` | Variabili ambiente prod | ⏳ Da creare |
+
+### Checklist per Nuovo Endpoint
+
+Quando crei un nuovo endpoint:
+
+1. [ ] Aggiungere request in Postman collection
+2. [ ] Aggiungere request in Bruno collection
+3. [ ] Documentare parametri e response
+4. [ ] Aggiungere test automatici
+5. [ ] Aggiornare questa sezione se necessario
+
 ---
 
 ## 10. Task Scheduling Celery
@@ -424,6 +461,10 @@ ZCS_DEVICE_KEYS=ZE1ES330J9E558  # comma-separated
 AUTH0_DOMAIN=[DOMAIN].eu.auth0.com
 AUTH0_CLIENT_ID=[CLIENT_ID]
 AUTH0_CLIENT_SECRET=[SECRET]
+
+# Email (Resend)
+RESEND_API_KEY=[API_KEY]
+NOTIFICATION_EMAIL=[YOUR_EMAIL]
 
 # App
 SECRET_KEY=[GENERATED]
@@ -504,7 +545,11 @@ ENVIRONMENT=production
 | 2024-Q4 | Inizio progetto, setup infrastruttura |
 | 2024-Q4 | Fase 1 completata: core MVP |
 | 2024-Q4 | Fase 2 completata: integrazione ZCS |
-| 2025-12 | Fase 3 in corso: frontend dashboard |
+| 2025-12-11 | Fix bug critici frontend/backend |
+| 2025-12-12 | Completate pagine: DeviceDetail, Analytics, Alarms, Settings |
+| 2025-12-12 | Riorganizzata Dashboard con bilancio energetico |
+| 2025-12-16 | Implementato sistema email (Resend) |
+| 2025-12-16 | Aggiunte nuove features: Status Page, Doc API, Doc Utente |
 
 ---
 
@@ -588,6 +633,132 @@ open http://localhost:5555
 ---
 
 ## 21. Future Features Pianificate
+
+### 📊 Status Page [FEAT-002]
+
+**Obiettivo:** Pagina pubblica tipo statuspage.io che mostra lo stato di tutti i servizi interni ed esterni con storico uptime.
+
+**Funzionalità:**
+- Badge stato per ogni servizio (🟢 Operational, 🟡 Degraded, 🔴 Outage)
+- Uptime percentage (99.9%) per 24h, 7 giorni, 30 giorni
+- Latenza media per ogni servizio
+- Grafico storico uptime (barre orizzontali)
+- Timeline incidenti recenti
+- Pagina accessibile senza login
+
+**Servizi da Monitorare:**
+| Servizio | Tipo | Health Check |
+|----------|------|--------------|
+| PostgreSQL | Interno | `pg_isready` |
+| InfluxDB | Interno | `/ping` |
+| Redis | Interno | `PING` |
+| Auth Service | Interno | `/health` |
+| Backend API | Interno | `/api/v1/health` |
+| Celery Workers | Interno | `inspect active` |
+| ZCS Azzurro API | Esterno | POST realtimeData |
+| Resend Email | Esterno | API status |
+
+**Modello Dati:**
+```sql
+service_checks (
+  id SERIAL PRIMARY KEY,
+  service_name VARCHAR(50),
+  status VARCHAR(20),        -- 'operational', 'degraded', 'outage'
+  latency_ms INTEGER,
+  error_message TEXT,
+  checked_at TIMESTAMP DEFAULT NOW()
+);
+
+incidents (
+  id SERIAL PRIMARY KEY,
+  service_name VARCHAR(50),
+  title VARCHAR(200),
+  description TEXT,
+  status VARCHAR(20),        -- 'investigating', 'identified', 'resolved'
+  started_at TIMESTAMP,
+  resolved_at TIMESTAMP
+);
+```
+
+**Effort Stimato:** 8-12 ore
+
+---
+
+### 📚 Documentazione API [FEAT-003]
+
+**Obiettivo:** Collezione Postman/Bruno che documenta tutti gli endpoint per testing e sviluppo.
+
+**File da Creare:**
+```
+doc/api/
+├── sunpulse.postman_collection.json
+├── sunpulse.bruno/
+│   ├── Health/
+│   ├── Devices/
+│   ├── Data/
+│   ├── Alarms/
+│   ├── Tasks/
+│   └── Notifications/
+└── environments/
+    ├── dev.json
+    └── prod.json
+```
+
+**Effort Stimato:** 4-6 ore
+
+---
+
+### 📖 Documentazione Utente [FEAT-004]
+
+**Obiettivo:** Guida utente completa per l'utilizzo della piattaforma SunPulse.
+
+**Struttura:**
+```
+doc/user-guide/
+├── README.md                    # Indice navigabile
+├── 01-introduction.md           # Introduzione e requisiti
+├── 02-installation.md           # Installazione e configurazione
+├── 03-first-access.md           # Primo accesso e setup Auth0
+├── 04-dashboard.md              # Dashboard - Panoramica sistema
+├── 05-devices.md                # Dispositivi - Gestione e monitoraggio
+├── 06-analytics.md              # Analytics - Analisi dati storici
+├── 07-alarms.md                 # Allarmi - Gestione notifiche
+├── 08-settings.md               # Impostazioni - Configurazione
+├── 09-api-integration.md        # API - Integrazione esterna
+├── 10-troubleshooting.md        # FAQ e risoluzione problemi
+└── screenshots/                 # Screenshot annotati
+```
+
+**Effort Stimato:** 8-12 ore
+
+---
+
+### 📝 Audit Log [FEAT-005]
+
+**Obiettivo:** Tracciamento completo di tutte le azioni utente e di sistema per compliance, debugging e sicurezza.
+
+**Nota:** La tabella `audit_log` esiste già in PostgreSQL, serve implementare middleware e UI.
+
+**Azioni da Tracciare:**
+- Login/Logout utente
+- Modifiche impostazioni
+- Acknowledge allarmi
+- Trigger task manuali
+- Invio email/notifiche
+- Accesso dati dispositivi
+- Errori API critici
+
+**API Endpoints:**
+```
+GET  /api/v1/audit/              # Lista log con paginazione
+GET  /api/v1/audit/{id}          # Dettaglio singolo log
+GET  /api/v1/audit/export        # Export CSV/JSON
+GET  /api/v1/audit/stats         # Statistiche (azioni per tipo, per utente)
+```
+
+**Effort Stimato:** 6-8 ore
+
+---
 
 ### 🧾 Scansione Bollette [FEAT-001]
 

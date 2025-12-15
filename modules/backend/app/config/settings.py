@@ -61,6 +61,11 @@ class Settings(BaseSettings):
     AUTH0_CLIENT_ID: str = Field(..., env="AUTH0_CLIENT_ID")
     AUTH0_CLIENT_SECRET: str = Field(..., env="AUTH0_CLIENT_SECRET")
     
+    # Email (Resend)
+    resend_api_key: Optional[str] = Field(None, env="RESEND_API_KEY")
+    notification_email: Optional[str] = Field(None, env="NOTIFICATION_EMAIL")
+    email_from: str = Field("SunPulse <noreply@sunpulse.app>", env="EMAIL_FROM")
+    
     @property
     def database_url(self) -> str:
         """URL del database PostgreSQL"""

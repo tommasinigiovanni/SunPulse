@@ -187,6 +187,10 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       DEBUG: ${DEBUG:-False}
       ENVIRONMENT: ${ENVIRONMENT:-production}
+      
+      # Email (Resend)
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL}
     volumes:
       - ./modules/backend:/app
     ports:
