@@ -76,8 +76,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const audience = import.meta.env.VITE_AUTH0_AUDIENCE;
   const redirectUri = window.location.origin;
 
-  // Modalità sviluppo se Auth0 non configurato o è il dominio di test
-  const isDevelopmentMode = !domain || !clientId || domain.includes('gt0dev.eu.auth0.com');
+  // Modalità sviluppo se forzata, Auth0 non configurato, o è il dominio di test
+  const forceDevMode = import.meta.env.VITE_AUTH_DEV_MODE === 'true';
+  const isDevelopmentMode = forceDevMode || !domain || !clientId;
 
   if (isDevelopmentMode) {
     console.warn('🔧 Auth0 non configurato correttamente - usando modalità sviluppo');
@@ -104,7 +105,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 // Export hook che funziona con entrambi i provider
 export const useAuth0 = () => {
   const domain = import.meta.env.VITE_AUTH0_DOMAIN;
-  const isDevelopmentMode = !domain || domain.includes('gt0dev.eu.auth0.com');
+  const forceDevMode = import.meta.env.VITE_AUTH_DEV_MODE === 'true';
+  const isDevelopmentMode = forceDevMode || !domain;
   
   if (isDevelopmentMode) {
     return useMockAuth0();

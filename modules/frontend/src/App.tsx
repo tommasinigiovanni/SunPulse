@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Outlet, useNavigate } from 'react-router-dom';
 import { Refine } from "@refinedev/core";
 import { DevtoolsProvider } from "@refinedev/devtools";
 import { RefineKbar, RefineKbarProvider } from "@refinedev/kbar";
@@ -24,6 +24,10 @@ import { Header } from './components/layout/Header';
 
 // Pages
 import { Dashboard } from './pages/Dashboard';
+import { DeviceDetail } from './pages/DeviceDetail';
+import { Analytics } from './pages/Analytics';
+import { Alarms } from './pages/Alarms';
+import { Settings } from './pages/Settings';
 import { DeviceList } from './components/devices/DeviceList';
 
 // Utils
@@ -104,6 +108,21 @@ function App() {
   );
 }
 
+// Pagina lista dispositivi con navigazione
+const DevicesPage: React.FC = () => {
+  const navigate = useNavigate();
+  
+  return (
+    <div style={{ padding: 24 }}>
+      <DeviceList onDeviceClick={(device) => {
+        // Usa thing_key come ID per la navigazione (è l'identificatore ZCS)
+        const deviceId = (device as any).thing_key || device.id;
+        navigate(`/devices/${deviceId}`);
+      }} />
+    </div>
+  );
+};
+
 // Contenuto principale dell'app
 const AppContent: React.FC = () => {
   return (
@@ -173,58 +192,31 @@ const AppContent: React.FC = () => {
           {/* Gestione dispositivi */}
           <Route 
             path="/devices" 
-            element={
-              <div style={{ padding: 24 }}>
-                <DeviceList onDeviceClick={(device) => {
-                  // Navigate to device detail
-                  window.location.href = `/devices/${device.id}`;
-                }} />
-              </div>
-            } 
+            element={<DevicesPage />} 
           />
           
           {/* Pagina dispositivo singolo */}
           <Route 
             path="/devices/:id" 
-            element={
-              <div style={{ padding: 24 }}>
-                <div>Device Detail Page - TODO</div>
-              </div>
-            } 
+            element={<DeviceDetail />} 
           />
           
           {/* Analytics */}
           <Route 
             path="/analytics" 
-            element={
-              <ProtectedRoute requiredPermissions={['read:analytics']}>
-                <div style={{ padding: 24 }}>
-                  <div>Analytics Page - TODO</div>
-                </div>
-              </ProtectedRoute>
-            } 
+            element={<Analytics />} 
           />
           
           {/* Allarmi */}
           <Route 
             path="/alarms" 
-            element={
-              <div style={{ padding: 24 }}>
-                <div>Alarms Page - TODO</div>
-              </div>
-            } 
+            element={<Alarms />} 
           />
           
           {/* Impostazioni */}
           <Route 
             path="/settings" 
-            element={
-              <ProtectedRoute requiredPermissions={['admin']}>
-                <div style={{ padding: 24 }}>
-                  <div>Settings Page - TODO</div>
-                </div>
-              </ProtectedRoute>
-            } 
+            element={<Settings />} 
           />
         </Route>
         

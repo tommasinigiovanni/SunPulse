@@ -59,7 +59,13 @@ export const useDevices = (options: UseDevicesOptions = {}) => {
 
     devices.forEach(device => {
       // Conta per status
-      stats[device.status as keyof typeof stats]++;
+      switch (device.status) {
+        case 'online': stats.online++; break;
+        case 'offline': stats.offline++; break;
+        case 'warning': stats.warning++; break;
+        case 'maintenance': stats.maintenance++; break;
+        case 'error': stats.error++; break;
+      }
       stats.by_status[device.status] = (stats.by_status[device.status] || 0) + 1;
       
       // Conta per tipo

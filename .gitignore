@@ -8,3 +8,4 @@ modules/influxdb/config/
 modules/mosquitto/data/
 modules/n8n/data/
 modules/n8n/workflows/
+modules/mosquitto/data/

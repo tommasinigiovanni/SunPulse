@@ -125,7 +125,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
           <Statistic
             title="Energia Oggi"
             value={device.daily_energy || 0}
-            formatter={(value) => formatEnergy(Number(value) * 1000)} // Convert kWh to Wh for formatting
+            formatter={(value) => formatEnergy(Number(value))} // Valore già in Wh dall'API
             valueStyle={{ 
               fontSize: compact ? 14 : 16,
               color: '#52c41a' 

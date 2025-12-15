@@ -1,5 +1,5 @@
 # ☀️ SunPulse - Context File
-> **Data ultimo aggiornamento:** 2025-12-11  
+> **Data ultimo aggiornamento:** 2025-12-12  
 > **Versione progetto:** v2.0.0  
 > **Stato:** Fase 2 completata, Fase 3 in corso
 
@@ -36,8 +36,10 @@ Piattaforma di monitoraggio impianti fotovoltaici che integra le API ZCS Azzurro
 - [x] Struttura routing base
 - [x] Componenti layout (Header)
 - [x] DeviceList component
-- [x] Dashboard component base
-- [x] PowerChart component
+- [x] Dashboard component con bilancio energetico
+- [x] PowerChart component ottimizzato
+- [x] Selettore dispositivo
+- [x] Card Consumo/Produzione Giornaliera con suddivisione per fonte
 - [ ] Device Detail Page
 - [ ] Analytics Page
 - [ ] Alarms Page
@@ -216,6 +218,20 @@ Dati tempo reale per dispositivi.
 - energyImportingTotal, energyConsumingTotal, energyAutoconsumingTotal
 - energyGeneratingTotal
 - `*` = tutti
+
+**Mapping Campi Energetici Giornalieri (verificato 2025-12-12):**
+
+| Campo ZCS | Descrizione | Uso Dashboard |
+|-----------|-------------|---------------|
+| `energyGenerating` | Energia prodotta oggi (kWh) | Produzione Giornaliera |
+| `energyConsuming` | Energia consumata oggi (kWh) | Consumo Giornaliero totale |
+| `energyAutoconsuming` | Autoconsumo diretto (kWh) | Consumo dal Sole |
+| `energyDischarging` | Energia scaricata da batteria (kWh) | Consumo dalla Batteria |
+| `energyCharging` | Energia caricata in batteria (kWh) | Produzione verso Batteria |
+| `energyImporting` | Energia prelevata dalla rete (kWh) | Consumo dalla Rete |
+| `energyExporting` | Energia immessa in rete (kWh) | Produzione verso Rete |
+
+> ⚠️ **Nota**: I nomi dei campi per batteria sono `energyCharging`/`energyDischarging` (NON `energyChargingBat`/`energyDischargingBat`)
 
 #### 7.2 historicData
 Dati storici (max 24h per richiesta).
@@ -568,6 +584,97 @@ docker-compose restart celery-worker celery-beat
 # Flower monitoring
 open http://localhost:5555
 ```
+
+---
+
+## 21. Future Features Pianificate
+
+### 🧾 Scansione Bollette [FEAT-001]
+
+**Obiettivo:** Permettere agli utenti di caricare foto/PDF delle bollette elettriche ed estrarre automaticamente i dati per confrontarli con la produzione fotovoltaica.
+
+**Funzionalità:**
+- Upload immagine (JPG, PNG) o PDF della bolletta
+- OCR automatico per estrarre testo
+- Parsing intelligente per identificare:
+  - Consumo totale (kWh)
+  - Costo totale (€)
+  - Periodo di fatturazione
+  - Fornitore energia
+  - Fasce orarie (F1, F2, F3)
+  - Potenza impegnata
+- Salvataggio dati strutturati nel database
+- Storico bollette con grafici trend
+- Confronto bollette vs produzione fotovoltaico
+- Calcolo risparmio effettivo
+
+**Architettura Proposta:**
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│    Frontend     │────▶│   Backend API   │────▶│   OCR Service   │
+│  Upload Image   │     │  /api/v1/bills  │     │   (Tesseract/   │
+└─────────────────┘     └────────┬────────┘     │  Cloud Vision)  │
+                                 │              └─────────────────┘
+                                 ▼
+                        ┌─────────────────┐
+                        │   PostgreSQL    │
+                        │  bills table    │
+                        └─────────────────┘
+```
+
+**Modello Dati Proposto:**
+
+```sql
+bills (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  provider VARCHAR(100),           -- Fornitore (Enel, Eni, etc.)
+  period_start DATE,               -- Inizio periodo
+  period_end DATE,                 -- Fine periodo
+  total_kwh DECIMAL(10,2),         -- Consumo totale kWh
+  total_cost DECIMAL(10,2),        -- Costo totale €
+  f1_kwh DECIMAL(10,2),            -- Fascia F1
+  f2_kwh DECIMAL(10,2),            -- Fascia F2
+  f3_kwh DECIMAL(10,2),            -- Fascia F3
+  power_kw DECIMAL(5,2),           -- Potenza impegnata
+  raw_text TEXT,                   -- Testo OCR originale
+  image_path VARCHAR(500),         -- Path immagine
+  confidence_score DECIMAL(3,2),   -- Score OCR (0-1)
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP
+);
+```
+
+**API Endpoints Proposti:**
+
+```
+POST /api/v1/bills/upload         # Upload e OCR bolletta
+GET  /api/v1/bills/               # Lista bollette utente
+GET  /api/v1/bills/{id}           # Dettaglio bolletta
+PUT  /api/v1/bills/{id}           # Modifica dati (correzione manuale)
+DELETE /api/v1/bills/{id}         # Elimina bolletta
+GET  /api/v1/bills/stats          # Statistiche aggregate
+GET  /api/v1/bills/compare        # Confronto con produzione FV
+```
+
+**Opzioni OCR:**
+
+| Servizio | Pro | Contro | Costo |
+|----------|-----|--------|-------|
+| Tesseract (self-hosted) | Gratuito, privacy, no dipendenze esterne | Meno preciso su layout complessi | €0 |
+| Google Cloud Vision | Molto preciso, supporto italiano | Vendor lock-in | ~€1.50/1000 immagini |
+| AWS Textract | Ottimo per documenti strutturati | Vendor lock-in | ~€1.50/1000 pagine |
+| Azure Form Recognizer | Pre-trained per fatture | Vendor lock-in | ~€1/1000 pagine |
+
+**Effort Stimato:** 16-24 ore
+
+**Priorità:** Media
+
+**Dipendenze:**
+- Storage per immagini (local o S3)
+- Servizio OCR configurato
+- Frontend per upload e visualizzazione
 
 ---
 

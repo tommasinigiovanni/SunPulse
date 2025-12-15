@@ -22,6 +22,7 @@ import {
 } from '@ant-design/icons';
 import { DeviceCard } from './DeviceCard';
 import { useDevices } from '@/hooks/useDevices';
+import { useRealTimeData } from '@/hooks/useRealTimeData';
 import { Device, DeviceType, DeviceStatus, DeviceFilters } from '@/types/device';
 import { formatDeviceType, formatDeviceStatus } from '@/utils/formatters';
 import { DEVICE_TYPES, DEVICE_STATUS } from '@/utils/constants';
@@ -52,12 +53,14 @@ export const DeviceList: React.FC<DeviceListProps> = ({
     error, 
     refetch, 
     stats,
-    energyStats,
     searchDevices 
   } = useDevices({
     filters,
     pagination: { pageSize: 50 },
   });
+
+  // Usa dati realtime per le statistiche energetiche
+  const { summary: realtimeSummary, data: realtimeData } = useRealTimeData();
 
   // Filtra dispositivi con ricerca
   const filteredDevices = useMemo(() => {
@@ -112,7 +115,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({
           <Col xs={24} sm={12} md={6}>
             <Statistic
               title="Online"
-              value={stats.online}
+              value={realtimeSummary?.online_devices ?? realtimeSummary?.active_devices ?? stats.online}
               valueStyle={{ color: '#52c41a' }}
               prefix={<Badge status="success" />}
             />
@@ -120,14 +123,14 @@ export const DeviceList: React.FC<DeviceListProps> = ({
           <Col xs={24} sm={12} md={6}>
             <Statistic
               title="Produzione Totale"
-              value={`${(energyStats.total_power / 1000).toFixed(1)} kW`}
+              value={`${((realtimeSummary?.total_power || 0) / 1000).toFixed(1)} kW`}
               valueStyle={{ color: '#1890ff' }}
             />
           </Col>
           <Col xs={24} sm={12} md={6}>
             <Statistic
-              title="Energia Oggi"
-              value={`${energyStats.daily_energy.toFixed(1)} kWh`}
+              title="Energia Prodotta Oggi"
+              value={`${(realtimeSummary?.total_energy_today || 0).toFixed(1)} kWh`}
               valueStyle={{ color: '#52c41a' }}
             />
           </Col>

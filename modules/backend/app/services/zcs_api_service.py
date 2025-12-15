@@ -227,7 +227,7 @@ class ZCSAPIService:
         current_start = start_date
         
         while current_start < end_date:
-            current_end = min(current_start + timedelta(hours=23), end_date)
+            current_end = min(current_start + timedelta(hours=24), end_date)
             
             chunk_result = await self.get_historic_data(
                 thing_keys, current_start, current_end, resolution

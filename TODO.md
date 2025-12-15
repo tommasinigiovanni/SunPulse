@@ -1,6 +1,6 @@
 # SunPulse - TODO
 
-> **Last updated:** 2025-12-11  
+> **Last updated:** 2025-12-12  
 > **Legend:** 🔴 Critical | ⚠️ High | 🟡 Medium | 🟢 Low
 
 ---
@@ -9,44 +9,44 @@
 
 ### Backend
 
-- [ ] **[BE-001]** `useDevices.ts:62` - `stats[device.status]++` invalid in TypeScript
+- [x] **[BE-001]** `useDevices.ts:62` - `stats[device.status]++` invalid in TypeScript ✅ FIXED 2025-12-11
   - File: `modules/frontend/src/hooks/useDevices.ts`
-  - Fix: Use correct increment pattern
+  - Fix: Use correct increment pattern with type checking
   
-- [ ] **[BE-002]** `data.py:177` - `get_settings()` not imported in try block
+- [x] **[BE-002]** `data.py:177` - `get_settings()` not imported in try block ✅ FIXED 2025-12-11
   - File: `modules/backend/app/api/v1/endpoints/data.py`
-  - Fix: Move import `from ....config.settings import get_settings` to top of file
+  - Fix: Moved import to top of file
 
-- [ ] **[BE-003]** `zcs_api_service.py:230` - Chunking uses 23h instead of 24h, may lose data
+- [x] **[BE-003]** `zcs_api_service.py:230` - Chunking uses 23h instead of 24h, may lose data ✅ FIXED 2025-12-11
   - File: `modules/backend/app/services/zcs_api_service.py`
-  - Fix: Change `timedelta(hours=23)` to `timedelta(hours=24)`
+  - Fix: Changed `timedelta(hours=23)` to `timedelta(hours=24)`
 
 ### Frontend
 
-- [ ] **[FE-001]** `Dashboard.tsx:27-28` - Energy estimate always 0 if `daily_energy=0`
+- [x] **[FE-001]** `Dashboard.tsx:27-28` - Energy estimate always 0 if `daily_energy=0` ✅ FIXED 2025-12-11
   - File: `modules/frontend/src/pages/Dashboard.tsx`
-  - Fix: Add null safety check
+  - Fix: Added fallback to summary.total_energy_today
 
-- [ ] **[FE-002]** `Dashboard.tsx:133` - Division by zero if `stats.total=0`
+- [x] **[FE-002]** `Dashboard.tsx:133` - Division by zero if `stats.total=0` ✅ FIXED 2025-12-11
   - File: `modules/frontend/src/pages/Dashboard.tsx`
-  - Fix: Add guard `stats.total > 0 ? ... : 0`
+  - Fix: Added guard `stats.total > 0 ? ... : 0`
 
-- [ ] **[FE-003]** `DeviceCard.tsx:128` - Conversion `*1000` kWh→Wh potentially wrong
+- [x] **[FE-003]** `DeviceCard.tsx:128` - Conversion `*1000` kWh→Wh potentially wrong ✅ FIXED 2025-12-11
   - File: `modules/frontend/src/components/devices/DeviceCard.tsx`
-  - Fix: Verify ZCS data units and correct
+  - Fix: Removed incorrect *1000 conversion
 
-- [ ] **[FE-004]** `PowerChart.tsx:39-87` - Simulated data instead of real
+- [x] **[FE-004]** `PowerChart.tsx:39-87` - Simulated data instead of real ✅ FIXED 2025-12-11
   - File: `modules/frontend/src/components/charts/PowerChart.tsx`
-  - Fix: Implement fetch from `/api/v1/data/historical`
+  - Fix: Implemented fetch from `/api/v1/data/historical` with fallback to simulation
 
 ---
 
 ## ⚠️ ARCHITECTURAL ISSUES
 
-- [ ] **[ARCH-001]** Auth Mock always active
+- [x] **[ARCH-001]** Auth Mock always active ✅ FIXED 2025-12-11
   - File: `modules/frontend/src/providers/AuthProvider.tsx:80`
   - Issue: `isDevelopmentMode = true` hardcoded
-  - Fix: Read from env `VITE_AUTH_MOCK=true`
+  - Fix: Changed to check Auth0 domain/clientId configuration
 
 - [ ] **[ARCH-002]** No React Error Boundary
   - Fix: Create `modules/frontend/src/components/common/ErrorBoundary.tsx`
@@ -70,6 +70,27 @@
 ## 🟡 UX/UI IMPROVEMENTS
 
 ### Dashboard
+
+- [x] **[UX-001a]** Dashboard riorganizzata ✅ DONE 2025-12-12
+  - Rimosso box "Stato Dispositivi" ridondante
+  - Aggiunto selettore dispositivo in alto a destra
+  - Grafico espanso a tutta larghezza
+
+- [x] **[UX-001b]** Aggiunte card bilancio energetico giornaliero ✅ DONE 2025-12-12
+  - Card "Consumo Giornaliero" con suddivisione: Dal Sole, Dalla Batteria, Dalla Rete
+  - Card "Produzione Giornaliera" con suddivisione: Autoconsumo, Verso Rete, Verso Batteria
+  - Card "Potenza Istantanea" compatta
+
+- [x] **[UX-001c]** Corretti campi ZCS per dati batteria ✅ FIXED 2025-12-12
+  - `energyDischarging` (non `energyDischargingBat`) per energia dalla batteria
+  - `energyCharging` (non `energyChargingBat`) per energia verso batteria
+  - `energyAutoconsuming` per autoconsumo diretto
+
+- [x] **[UX-001d]** Risolto refresh fastidioso del grafico ✅ FIXED 2025-12-12
+  - Polling ridotto a 60 secondi
+  - Componente Line memorizzato con React.memo
+  - Animazioni disabilitate dopo primo render
+  - Slider mantiene posizione con useRef
 
 - [ ] **[UX-001]** Hardcoded percentage variations (`+5.2%`, `+12%`, etc.)
   - File: `modules/frontend/src/pages/Dashboard.tsx`
@@ -98,12 +119,12 @@
 
 ### Header
 
-- [ ] **[UX-008]** Notification count hardcoded to 3
-  - File: `modules/frontend/src/components/layout/Header.tsx:57`
-  - Fix: Connect to real notification system
+- [x] **[UX-008]** Notification count hardcoded to 3 ✅ FIXED 2025-12-12
+  - File: `modules/frontend/src/components/layout/Header.tsx`
+  - Fix: Rimossa campanella con badge finto (sistema notifiche non implementato)
 
-- [ ] **[UX-009]** Quick stats overflow on mobile
-  - Fix: Hide header stats on viewport < 768px
+- [x] **[UX-009]** User menu overflow ✅ FIXED 2025-12-12
+  - Fix: Aggiunto ellipsis e maxWidth per nome/email utente
 
 ### Mobile
 
@@ -112,6 +133,25 @@
 
 - [ ] **[UX-011]** Chart slider difficult on touch
   - Fix: Increase touch area or disable on mobile
+
+---
+
+## 🚀 NEW FEATURES
+
+### Scansione Bollette
+
+- [ ] **[FEAT-001]** Scansione e OCR bollette elettriche
+  - **Descrizione**: Permette all'utente di caricare foto/PDF delle bollette e estrarre automaticamente i dati
+  - **Componenti**:
+    - [ ] Upload immagine/PDF (frontend)
+    - [ ] Servizio OCR (Tesseract / Google Vision / AWS Textract)
+    - [ ] Parser per estrarre dati strutturati (consumo kWh, costi, periodo, fornitore)
+    - [ ] Modello database per bollette
+    - [ ] API endpoints CRUD bollette
+    - [ ] Pagina storico bollette con grafici
+    - [ ] Confronto bollette vs produzione fotovoltaico
+  - **Effort stimato**: 16-24h
+  - **Priorità**: Media
 
 ---
 
@@ -130,17 +170,24 @@
 
 ## 📋 PAGES TO COMPLETE
 
-- [ ] **[PAGE-001]** Device Detail Page (`/devices/:id`)
+- [x] **[PAGE-001]** Device Detail Page (`/devices/:id`) ✅ DONE 2025-12-12
   - Effort: 4h
+  - File: `modules/frontend/src/pages/DeviceDetail.tsx`
   
-- [ ] **[PAGE-002]** Analytics Page (`/analytics`)
+- [x] **[PAGE-002]** Analytics Page (`/analytics`) ✅ DONE 2025-12-12
   - Effort: 6h
+  - File: `modules/frontend/src/pages/Analytics.tsx`
+  - Grafici produzione/consumo, selettore periodo, KPI, tabelle riepilogo
   
-- [ ] **[PAGE-003]** Alarms Page (`/alarms`)
+- [x] **[PAGE-003]** Alarms Page (`/alarms`) ✅ DONE 2025-12-12
   - Effort: 4h
+  - File: `modules/frontend/src/pages/Alarms.tsx`
+  - Lista allarmi, filtri, statistiche, gestione stato
   
-- [ ] **[PAGE-004]** Settings Page (`/settings`)
+- [x] **[PAGE-004]** Settings Page (`/settings`) ✅ DONE 2025-12-12
   - Effort: 3h
+  - File: `modules/frontend/src/pages/Settings.tsx`
+  - Tabs: Generale, Notifiche, Dispositivi, API, Sistema
 
 ---
 
@@ -159,13 +206,14 @@
 
 | Priority | Count | Status |
 |----------|-------|--------|
-| 🔴 Critical | 7 | 0/7 completed |
-| ⚠️ High | 6 | 0/6 completed |
-| 🟡 Medium | 11 | 0/11 completed |
+| 🔴 Critical | 7 | **7/7 completed** ✅ |
+| ⚠️ High | 6 | 1/6 completed |
+| 🟡 Medium | 15 | **6/15 completed** |
 | 🟢 Low | 8 | 0/8 completed |
-| 📋 Pages | 4 | 0/4 completed |
+| 🚀 New Features | 1 | 0/1 completed |
+| 📋 Pages | 4 | **4/4 completed** ✅ |
 | 🔧 Infra | 6 | 0/6 completed |
-| **TOTAL** | **42** | **0/42** |
+| **TOTAL** | **47** | **18/47** |
 
 ---
 
@@ -174,3 +222,5 @@
 - Prioritize critical bug fixes before new features
 - Code review completed on 2025-12-11
 - Both backend and frontend have issues to resolve
+- **2025-12-12**: Dashboard riorganizzata, corretti campi ZCS per batteria, risolto refresh grafico
+- **2025-12-12**: Completate tutte le 4 pagine mancanti (DeviceDetail, Analytics, Alarms, Settings)

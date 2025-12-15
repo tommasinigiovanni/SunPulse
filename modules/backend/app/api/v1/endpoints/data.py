@@ -6,6 +6,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import structlog
 
+from ....config.settings import get_settings
 from ....services.zcs_api_service import get_zcs_service
 from ....services.cache_service import get_cache_service, DataType, make_cache_key
 from ....services.data_collector import get_task_status, celery_app
@@ -15,12 +16,69 @@ logger = structlog.get_logger()
 
 router = APIRouter()
 
+async def get_daily_energy_from_historical(zcs_service, thing_keys: List[str]) -> Dict[str, float]:
+    """Calcola energia giornaliera dalla differenza dei valori cumulativi storici"""
+    try:
+        # Prendi dati da mezzanotte a ora
+        now = datetime.utcnow()
+        start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        hist_result = await zcs_service.get_historic_data(thing_keys, start_of_day, now, "15m")
+        
+        if not hist_result.get('success'):
+            return {}
+        
+        daily_energy = {
+            "energy_generating": 0,
+            "energy_consuming": 0,
+            "energy_autoconsuming": 0,
+            "energy_importing": 0,
+            "energy_exporting": 0,
+            "energy_charging": 0,
+            "energy_discharging": 0,
+        }
+        
+        for thing_key, device_data in hist_result['data'].items():
+            if not device_data:
+                continue
+                
+            hist = device_data.get('historicData', {}).get('params', {}).get('value', [])
+            if not hist or len(hist) == 0:
+                continue
+                
+            zcs = hist[0].get(thing_key, {})
+            
+            # Mappa campi: nome ZCS -> nome interno
+            field_mapping = {
+                "energyGeneratingTotalDecimal": "energy_generating",
+                "energyConsumingTotalDecimal": "energy_consuming",
+                "energyAutoconsumingTotalDecimal": "energy_autoconsuming",
+                "energyImportingTotalDecimal": "energy_importing",
+                "energyExportingTotalDecimal": "energy_exporting",
+                "energyChargingTotalDecimal": "energy_charging",
+                "energyDischargingTotalDecimal": "energy_discharging",
+            }
+            
+            for zcs_field, internal_field in field_mapping.items():
+                vals = zcs.get(zcs_field, [])
+                if isinstance(vals, list) and len(vals) >= 2:
+                    first = vals[0] if vals[0] else 0
+                    last = vals[-1] if vals[-1] else 0
+                    diff = max(0, last - first)  # Energia non può essere negativa
+                    daily_energy[internal_field] += diff
+        
+        logger.debug("Daily energy calculated from historical", daily_energy=daily_energy)
+        return daily_energy
+        
+    except Exception as e:
+        logger.warning("Failed to get daily energy from historical", error=str(e))
+        return {}
+
+
 @router.get("/realtime")
 async def get_realtime_data() -> Dict[str, Any]:
     """Ottieni dati in tempo reale aggregati per tutti i dispositivi"""
     try:
-        from ....config.settings import get_settings
-        
         cache_service = await get_cache_service()
         zcs_service = await get_zcs_service()
         settings = get_settings()
@@ -44,6 +102,9 @@ async def get_realtime_data() -> Dict[str, Any]:
         
         # Cache miss - ottieni da ZCS API
         zcs_result = await zcs_service.get_realtime_data(thing_keys)
+        
+        # Ottieni energia giornaliera da dati storici (più affidabile)
+        daily_energy = await get_daily_energy_from_historical(zcs_service, thing_keys)
         
         if zcs_result.get('success'):
             # Aggrega i dati per tutti i dispositivi
@@ -88,7 +149,6 @@ async def get_realtime_data() -> Dict[str, Any]:
                     # Aggregazione reale dei dati ZCS
                     aggregated_data["total_power_generating"] += real_time_device["power"]
                     aggregated_data["total_power_consuming"] += zcs_device.get("powerConsuming", 0)
-                    aggregated_data["summary"]["total_energy_today"] += real_time_device["energy_today"]
                     
                     # Calcola media SOC batteria
                     if real_time_device["battery_soc"] > 0:
@@ -96,11 +156,50 @@ async def get_realtime_data() -> Dict[str, Any]:
             
             # Finalizza calcoli aggregati
             aggregated_data["summary"]["active_devices"] = active_devices
+            aggregated_data["summary"]["online_devices"] = active_devices  # Alias per frontend
+            aggregated_data["summary"]["total_devices"] = len(thing_keys)  # Totale dispositivi configurati
             aggregated_data["summary"]["total_power"] = aggregated_data["total_power_generating"]
             aggregated_data["summary"]["total_power_consuming"] = aggregated_data["total_power_consuming"]
             
             if active_devices > 0:
                 aggregated_data["battery_soc_avg"] = aggregated_data["battery_soc_avg"] / active_devices
+            
+            # Usa dati energetici giornalieri calcolati da storico (più affidabili)
+            energy_autoconsuming = daily_energy.get("energy_autoconsuming", 0)
+            energy_from_grid = daily_energy.get("energy_importing", 0)
+            energy_from_battery = daily_energy.get("energy_discharging", 0)
+            
+            # Calcola consumo totale come somma dei componenti (più accurato del valore ZCS)
+            # Consumo = Autoconsumo + Dalla Rete + Dalla Batteria
+            energy_consumed_calculated = energy_autoconsuming + energy_from_grid + energy_from_battery
+            
+            aggregated_data["summary"]["total_energy_today"] = daily_energy.get("energy_generating", 0)
+            aggregated_data["summary"]["energy_consumed_today"] = energy_consumed_calculated  # Somma componenti
+            aggregated_data["summary"]["energy_autoconsuming_today"] = energy_autoconsuming
+            aggregated_data["summary"]["energy_from_grid_today"] = energy_from_grid
+            aggregated_data["summary"]["energy_to_grid_today"] = daily_energy.get("energy_exporting", 0)
+            aggregated_data["summary"]["energy_to_battery_today"] = daily_energy.get("energy_charging", 0)
+            aggregated_data["summary"]["energy_from_battery_today"] = energy_from_battery
+            aggregated_data["summary"]["energy_self_consumed_today"] = energy_autoconsuming
+            
+            # Calcolo bilancio energetico
+            production = aggregated_data["total_power_generating"]
+            consumption = aggregated_data["total_power_consuming"]
+            
+            # Autoconsumo = energia prodotta usata direttamente (min tra produzione e consumo)
+            self_consumption = min(production, consumption)
+            
+            # Dalla rete = consumo - autoconsumo (quando consumo > produzione)
+            from_grid = max(0, consumption - production)
+            
+            # Immissione in rete = produzione - autoconsumo (quando produzione > consumo)
+            to_grid = max(0, production - consumption)
+            
+            # Aggiungi al summary (dati istantanei in W)
+            aggregated_data["summary"]["self_consumption"] = self_consumption  # Autoconsumo in W
+            aggregated_data["summary"]["from_grid"] = from_grid  # Prelievo dalla rete in W
+            aggregated_data["summary"]["to_grid"] = to_grid  # Immissione in rete in W
+            aggregated_data["summary"]["battery_soc"] = aggregated_data["battery_soc_avg"]  # SOC batteria %
                 
             # Calcola efficienza sistema
             if aggregated_data["total_power_consuming"] > 0:

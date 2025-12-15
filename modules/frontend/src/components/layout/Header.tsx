@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layout, Avatar, Dropdown, Space, Typography, Button, Badge } from 'antd';
+import { Layout, Avatar, Dropdown, Space, Typography, Button } from 'antd';
 import { 
   UserOutlined, 
   LogoutOutlined, 
@@ -23,6 +23,9 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ collapsed, onCollapse }) => {
   const { user, logout, isAuthenticated } = useAuth();
   const { isWebSocketConnected, summary } = useRealTimeData();
+  
+  // WebSocket è disabilitato se VITE_ENABLE_REALTIME è false
+  const isRealtimeEnabled = import.meta.env.VITE_ENABLE_REALTIME === 'true';
 
   const userMenuItems = [
     {
@@ -53,8 +56,6 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onCollapse }) => {
       onClick: () => logout(),
     },
   ];
-
-  const notificationCount = 3; // TODO: Get from real notification system
 
   return (
     <AntHeader
@@ -91,15 +92,23 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onCollapse }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <WifiOutlined 
               style={{ 
-                color: isWebSocketConnected ? '#52c41a' : '#ff4d4f',
+                color: isRealtimeEnabled 
+                  ? (isWebSocketConnected ? '#52c41a' : '#ff4d4f')
+                  : '#1890ff',
                 fontSize: 14 
               }} 
             />
             <Text 
-              type={isWebSocketConnected ? 'success' : 'danger'} 
-              style={{ fontSize: 12 }}
+              type={isRealtimeEnabled 
+                ? (isWebSocketConnected ? 'success' : 'danger')
+                : undefined
+              } 
+              style={{ fontSize: 12, color: isRealtimeEnabled ? undefined : '#1890ff' }}
             >
-              {isWebSocketConnected ? 'Connesso' : 'Disconnesso'}
+              {isRealtimeEnabled 
+                ? (isWebSocketConnected ? 'Connesso' : 'Disconnesso')
+                : 'Polling'
+              }
             </Text>
           </div>
         </div>
@@ -109,48 +118,63 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onCollapse }) => {
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         {/* Quick Stats */}
         {summary && (
-          <Space size="large">
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 12, color: '#666' }}>Produzione</div>
-              <Text strong style={{ color: '#1890ff' }}>
-                {(summary.total_power / 1000).toFixed(1)} kW
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 24,
+            marginRight: 16,
+            padding: '4px 0'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              minWidth: 70
+            }}>
+              <Text type="secondary" style={{ fontSize: 11, lineHeight: 1.2 }}>Produzione</Text>
+              <Text strong style={{ color: '#1890ff', fontSize: 14, lineHeight: 1.4 }}>
+                {((summary.total_power || 0) / 1000).toFixed(1)} kW
               </Text>
             </div>
             
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 12, color: '#666' }}>Energia Oggi</div>
-              <Text strong style={{ color: '#52c41a' }}>
-                {summary.total_energy_today.toFixed(1)} kWh
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              minWidth: 70
+            }}>
+              <Text type="secondary" style={{ fontSize: 11, lineHeight: 1.2 }}>Energia Oggi</Text>
+              <Text strong style={{ color: '#52c41a', fontSize: 14, lineHeight: 1.4 }}>
+                {(summary.total_energy_today || 0).toFixed(1)} kWh
               </Text>
             </div>
             
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 12, color: '#666' }}>Dispositivi</div>
-              <Text strong>
-                <span style={{ color: '#52c41a' }}>{summary.online_devices}</span>
-                /
-                <span style={{ color: '#666' }}>{summary.total_devices}</span>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              minWidth: 70
+            }}>
+              <Text type="secondary" style={{ fontSize: 11, lineHeight: 1.2 }}>Dispositivi</Text>
+              <Text strong style={{ fontSize: 14, lineHeight: 1.4 }}>
+                <span style={{ color: '#52c41a' }}>{summary.online_devices ?? summary.active_devices ?? 0}</span>
+                <span style={{ color: '#999' }}>/</span>
+                <span style={{ color: '#666' }}>{summary.total_devices ?? summary.active_devices ?? 0}</span>
               </Text>
             </div>
-          </Space>
+          </div>
         )}
 
-        {/* Notifications */}
-        <Badge count={notificationCount} size="small">
-          <Button
-            type="text"
-            icon={<BellOutlined />}
-            onClick={() => {
-              // Open notifications panel
-              console.log('Open notifications');
-            }}
-            style={{
-              fontSize: '16px',
-              width: 32,
-              height: 32,
-            }}
-          />
-        </Badge>
+        {/* Notifications - TODO: implementare sistema notifiche */}
+        <Button
+          type="text"
+          icon={<BellOutlined />}
+          style={{
+            fontSize: '16px',
+            width: 32,
+            height: 32,
+          }}
+        />
 
         {/* User Menu */}
         {isAuthenticated && user && (
@@ -168,6 +192,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onCollapse }) => {
                 padding: '4px 8px',
                 borderRadius: 6,
                 transition: 'background-color 0.2s',
+                maxWidth: 200,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#f5f5f5';
@@ -181,14 +206,27 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onCollapse }) => {
                 src={user.picture}
                 icon={<UserOutlined />}
               />
-              <Space direction="vertical" size={0}>
-                <Text strong style={{ fontSize: 14, lineHeight: 1.2 }}>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                overflow: 'hidden',
+                minWidth: 0,
+              }}>
+                <Text 
+                  strong 
+                  ellipsis 
+                  style={{ fontSize: 13, lineHeight: 1.3 }}
+                >
                   {user.name}
                 </Text>
-                <Text type="secondary" style={{ fontSize: 12, lineHeight: 1.2 }}>
+                <Text 
+                  type="secondary" 
+                  ellipsis
+                  style={{ fontSize: 11, lineHeight: 1.3 }}
+                >
                   {user.email}
                 </Text>
-              </Space>
+              </div>
             </div>
           </Dropdown>
         )}

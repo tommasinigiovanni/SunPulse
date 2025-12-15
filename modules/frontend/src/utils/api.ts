@@ -105,6 +105,13 @@ export const apiClient = {
     return response.data;
   },
   
+  async getSystemHistoricalData(startDate: string, endDate: string, resolution: string = '1h', metric: string = 'energy') {
+    const response = await axiosInstance.get('/data/historical', {
+      params: { start: startDate, end: endDate, resolution, metric }
+    });
+    return response.data;
+  },
+  
   // Alarms
   async getAlarms(deviceId?: string) {
     const url = deviceId ? `/devices/${deviceId}/alarms` : '/alarms';
