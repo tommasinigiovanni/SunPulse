@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Row, 
   Col, 
@@ -10,7 +10,9 @@ import {
   DatePicker,
   Segmented,
   Table,
-  Progress
+  Progress,
+  Skeleton,
+  Spin
 } from 'antd';
 import { 
   ThunderboltOutlined, 
@@ -23,6 +25,7 @@ import {
 } from '@ant-design/icons';
 import { Column, Pie } from '@ant-design/charts';
 import { useRealTimeData } from '@/hooks/useRealTimeData';
+import { apiClient } from '@/utils/api';
 import { formatEnergy, formatCurrency, formatCO2 } from '@/utils/formatters';
 import dayjs from 'dayjs';
 
@@ -35,11 +38,84 @@ export const Analytics: React.FC = () => {
   const [period, setPeriod] = useState<PeriodType>('month');
   const [viewType, setViewType] = useState<'energy' | 'money' | 'co2'>('energy');
   
+  // Stato per dati storici reali (deve essere prima di metrics che lo usa)
+  const [historicalDailyData, setHistoricalDailyData] = useState<any[]>([]);
+  const [historicalLoading, setHistoricalLoading] = useState(true); // Start with loading=true
+  
   const { summary } = useRealTimeData();
 
-  // Calcola metriche in base al periodo
+  // Carica dati storici giornalieri dal backend
+  useEffect(() => {
+    const fetchDailyEnergy = async () => {
+      try {
+        setHistoricalLoading(true);
+        const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 365;
+        
+        const response = await apiClient.getDailyEnergyHistory(days);
+        
+        if (response?.data && response.data.length > 0) {
+          setHistoricalDailyData(response.data);
+        }
+      } catch (err) {
+        console.warn('Dati energia giornaliera non disponibili:', err);
+      } finally {
+        setHistoricalLoading(false);
+      }
+    };
+    
+    fetchDailyEnergy();
+  }, [period]);
+
+  // Calcola metriche aggregate dai dati storici reali
   const metrics = useMemo(() => {
-    // Usa dati reali dal backend (già calcolati da dati storici ZCS)
+    // Se abbiamo dati storici, usa quelli per calcolare i totali
+    if (historicalDailyData.length > 0) {
+      const production = historicalDailyData.reduce((sum, day) => sum + (day.production_kwh || 0), 0);
+      const consumption = historicalDailyData.reduce((sum, day) => sum + (day.consumption_kwh || 0), 0);
+      
+      // Stima autoconsumo come min(produzione, consumo) per ogni giorno
+      // In realtà dovrebbe venire dal backend, ma per ora usiamo questa approssimazione
+      const selfConsumption = historicalDailyData.reduce((sum, day) => {
+        return sum + Math.min(day.production_kwh || 0, day.consumption_kwh || 0);
+      }, 0);
+      
+      // Stima dalla rete = consumo - autoconsumo
+      const fromGrid = Math.max(0, consumption - selfConsumption);
+      
+      // Stima verso rete = produzione - autoconsumo
+      const toGrid = Math.max(0, production - selfConsumption);
+      
+      // Per ora non abbiamo dati storici batteria, usa 0
+      const fromBattery = 0;
+      const toBattery = 0;
+      
+      // Calcolo tasso autoconsumo: quanto della produzione viene usata direttamente
+      const selfConsumptionRate = production > 0 
+        ? (selfConsumption / production) * 100 
+        : 0;
+      
+      // Calcolo tasso autosufficienza: quanto del consumo viene coperto da fonti proprie
+      const autarkyRate = consumption > 0 
+        ? (selfConsumption / consumption) * 100 
+        : 0;
+      
+      return {
+        production,
+        consumption,
+        selfConsumption,
+        fromGrid,
+        toGrid,
+        fromBattery,
+        toBattery,
+        selfConsumptionRate: Math.min(100, selfConsumptionRate),
+        autarkyRate: Math.min(100, autarkyRate),
+        co2Saved: production * 0.4, // kg CO2 per kWh
+        moneySaved: selfConsumption * 0.25, // €/kWh autoconsumo
+        moneyEarned: toGrid * 0.10, // €/kWh venduto
+      };
+    }
+    
+    // Fallback: usa dati di oggi (solo per "Oggi")
     const dailyProduction = summary?.total_energy_today || 0;
     const dailyConsumption = summary?.energy_consumed_today || 0;
     const dailySelfConsumption = summary?.energy_self_consumed_today || 0;
@@ -48,49 +124,56 @@ export const Analytics: React.FC = () => {
     const dailyFromBattery = summary?.energy_from_battery_today || 0;
     const dailyToBattery = summary?.energy_to_battery_today || 0;
     
-    const multiplier = period === 'today' ? 1 : 
-                       period === 'week' ? 7 : 
-                       period === 'month' ? 30 : 365;
-    
-    const production = dailyProduction * multiplier;
-    const consumption = dailyConsumption * multiplier;
-    const selfConsumption = dailySelfConsumption * multiplier;
-    const fromGrid = dailyFromGrid * multiplier;
-    const toGrid = dailyToGrid * multiplier;
-    const fromBattery = dailyFromBattery * multiplier;
-    const toBattery = dailyToBattery * multiplier;
-    
-    // Calcolo tasso autoconsumo: quanto della produzione viene usata direttamente
     const selfConsumptionRate = dailyProduction > 0 
       ? (dailySelfConsumption / dailyProduction) * 100 
       : 0;
     
-    // Calcolo tasso autosufficienza: quanto del consumo viene coperto da fonti proprie
     const autarkyRate = dailyConsumption > 0 
       ? ((dailySelfConsumption + dailyFromBattery) / dailyConsumption) * 100 
       : 0;
     
     return {
-      production,
-      consumption,
-      selfConsumption,
-      fromGrid,
-      toGrid,
-      fromBattery,
-      toBattery,
+      production: dailyProduction,
+      consumption: dailyConsumption,
+      selfConsumption: dailySelfConsumption,
+      fromGrid: dailyFromGrid,
+      toGrid: dailyToGrid,
+      fromBattery: dailyFromBattery,
+      toBattery: dailyToBattery,
       selfConsumptionRate: Math.min(100, selfConsumptionRate),
       autarkyRate: Math.min(100, autarkyRate),
-      co2Saved: production * 0.4, // kg CO2 per kWh
-      moneySaved: (selfConsumption + fromBattery) * 0.25, // €/kWh
-      moneyEarned: toGrid * 0.10, // €/kWh venduto
+      co2Saved: dailyProduction * 0.4,
+      moneySaved: dailySelfConsumption * 0.25,
+      moneyEarned: dailyToGrid * 0.10,
     };
-  }, [summary, period]);
+  }, [summary, period, historicalDailyData]);
 
   // Dati per grafico a barre (produzione vs consumo per giorno)
   const barChartData = useMemo(() => {
     const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 12;
     const data = [];
     
+    // Se abbiamo dati storici reali dal nuovo endpoint, usali
+    if (historicalDailyData.length > 0) {
+      const recentData = historicalDailyData.slice(-days);
+      
+      for (const point of recentData) {
+        data.push({
+          date: point.date_label,
+          value: point.production_kwh || 0,
+          type: 'Produzione',
+        });
+        data.push({
+          date: point.date_label,
+          value: point.consumption_kwh || 0,
+          type: 'Consumo',
+        });
+      }
+      
+      return data;
+    }
+    
+    // Fallback: genera dati stimati basati su oggi
     const dailyProduction = summary?.total_energy_today || 0;
     const dailyConsumption = summary?.energy_consumed_today || 0;
     
@@ -98,24 +181,25 @@ export const Analytics: React.FC = () => {
       const date = dayjs().subtract(i, period === 'year' ? 'month' : 'day');
       const label = period === 'year' ? date.format('MMM') : date.format('DD/MM');
       
-      // Variazione realistica basata sull'ora (più produzione a mezzogiorno)
-      const prodVariation = 0.6 + Math.random() * 0.8;
-      const consVariation = 0.8 + Math.random() * 0.4;
+      // Per oggi usa dati reali, per altri giorni stima basata su media
+      const isToday = i === 0;
+      const avgProduction = isToday ? dailyProduction : dailyProduction * 0.9;
+      const avgConsumption = isToday ? dailyConsumption : dailyConsumption * 0.95;
       
       data.push({
         date: label,
-        value: dailyProduction * prodVariation,
+        value: avgProduction,
         type: 'Produzione',
       });
       data.push({
         date: label,
-        value: dailyConsumption * consVariation,
+        value: avgConsumption,
         type: 'Consumo',
       });
     }
     
     return data;
-  }, [summary, period]);
+  }, [summary, period, historicalDailyData]);
 
   // Dati per grafico a torta (distribuzione consumo)
   const pieChartData = useMemo(() => [
@@ -144,6 +228,12 @@ export const Analytics: React.FC = () => {
       label: {
         formatter: (v: string) => `${Number(v).toFixed(0)} kWh`,
       },
+    },
+    tooltip: {
+      formatter: (datum: any) => ({
+        name: datum.type,
+        value: `${Number(datum.value).toFixed(2)} kWh`,
+      }),
     },
   };
 
@@ -211,56 +301,64 @@ export const Analytics: React.FC = () => {
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} md={6}>
           <Card>
-            <Statistic
-              title={`Produzione ${getPeriodLabel()}`}
-              value={metrics.production}
-              precision={1}
-              suffix="kWh"
-              prefix={<ThunderboltOutlined style={{ color: '#52c41a' }} />}
-              valueStyle={{ color: '#52c41a', fontSize: 24 }}
-            />
+            <Skeleton loading={historicalLoading && period !== 'today'} active paragraph={false}>
+              <Statistic
+                title={`Produzione ${getPeriodLabel()}`}
+                value={metrics.production}
+                precision={1}
+                suffix="kWh"
+                prefix={<ThunderboltOutlined style={{ color: '#52c41a' }} />}
+                valueStyle={{ color: '#52c41a', fontSize: 24 }}
+              />
+            </Skeleton>
           </Card>
         </Col>
         
         <Col xs={24} sm={12} md={6}>
           <Card>
-            <Statistic
-              title={`Consumo ${getPeriodLabel()}`}
-              value={metrics.consumption}
-              precision={1}
-              suffix="kWh"
-              prefix={<FallOutlined style={{ color: '#faad14' }} />}
-              valueStyle={{ color: '#faad14', fontSize: 24 }}
-            />
+            <Skeleton loading={historicalLoading && period !== 'today'} active paragraph={false}>
+              <Statistic
+                title={`Consumo ${getPeriodLabel()}`}
+                value={metrics.consumption}
+                precision={1}
+                suffix="kWh"
+                prefix={<FallOutlined style={{ color: '#faad14' }} />}
+                valueStyle={{ color: '#faad14', fontSize: 24 }}
+              />
+            </Skeleton>
           </Card>
         </Col>
         
         <Col xs={24} sm={12} md={6}>
           <Card>
-            <Statistic
-              title="Risparmio"
-              value={metrics.moneySaved + metrics.moneyEarned}
-              precision={2}
-              prefix={<DollarOutlined style={{ color: '#52c41a' }} />}
-              suffix="€"
-              valueStyle={{ color: '#52c41a', fontSize: 24 }}
-            />
-            <Text type="secondary" style={{ fontSize: 11 }}>
-              Autoconsumo: €{metrics.moneySaved.toFixed(2)} | Vendita: €{metrics.moneyEarned.toFixed(2)}
-            </Text>
+            <Skeleton loading={historicalLoading && period !== 'today'} active paragraph={false}>
+              <Statistic
+                title="Risparmio"
+                value={metrics.moneySaved + metrics.moneyEarned}
+                precision={2}
+                prefix={<DollarOutlined style={{ color: '#52c41a' }} />}
+                suffix="€"
+                valueStyle={{ color: '#52c41a', fontSize: 24 }}
+              />
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                Autoconsumo: €{metrics.moneySaved.toFixed(2)} | Vendita: €{metrics.moneyEarned.toFixed(2)}
+              </Text>
+            </Skeleton>
           </Card>
         </Col>
         
         <Col xs={24} sm={12} md={6}>
           <Card>
-            <Statistic
-              title="CO₂ Risparmiata"
-              value={metrics.co2Saved}
-              precision={1}
-              suffix="kg"
-              prefix={<CloudOutlined style={{ color: '#52c41a' }} />}
-              valueStyle={{ color: '#52c41a', fontSize: 24 }}
-            />
+            <Skeleton loading={historicalLoading && period !== 'today'} active paragraph={false}>
+              <Statistic
+                title="CO₂ Risparmiata"
+                value={metrics.co2Saved}
+                precision={1}
+                suffix="kg"
+                prefix={<CloudOutlined style={{ color: '#52c41a' }} />}
+                valueStyle={{ color: '#52c41a', fontSize: 24 }}
+              />
+            </Skeleton>
           </Card>
         </Col>
       </Row>
@@ -304,7 +402,9 @@ export const Analytics: React.FC = () => {
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} lg={16}>
           <Card title={`📈 Produzione vs Consumo - ${getPeriodLabel()}`}>
-            <Column {...barConfig} height={300} />
+            <Spin spinning={historicalLoading && period !== 'today'} tip="Caricamento dati storici...">
+              <Column {...barConfig} height={300} />
+            </Spin>
           </Card>
         </Col>
         

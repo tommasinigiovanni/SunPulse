@@ -112,6 +112,13 @@ export const apiClient = {
     return response.data;
   },
   
+  async getDailyEnergyHistory(days: number = 30) {
+    const response = await axiosInstance.get('/data/daily-energy', {
+      params: { days }
+    });
+    return response.data;
+  },
+  
   // Alarms
   async getAlarms(deviceId?: string) {
     const url = deviceId ? `/devices/${deviceId}/alarms` : '/alarms';
