@@ -35,5 +35,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/health/ping || exit 1
 
-# Comando di avvio
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"] 
+# Comando di avvio (usa --reload solo se ENVIRONMENT=development)
+# In produzione: uvicorn senza --reload
+# In sviluppo: uvicorn con --reload per hot-reload
+CMD ["sh", "-c", "if [ \"$ENVIRONMENT\" = 'development' ]; then uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload; else uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2; fi"] 
