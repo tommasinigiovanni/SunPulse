@@ -46,6 +46,64 @@ notification.config({
   maxCount: NOTIFICATION_CONFIG.MAX_COUNT,
 });
 
+// Componente Logo per Sidebar
+const SidebarTitle: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
+  <div style={{ 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: 8,
+    padding: collapsed ? '8px 0' : '8px 4px',
+    justifyContent: collapsed ? 'center' : 'flex-start',
+  }}>
+    <img 
+      src="/sunpulse-logo.png" 
+      alt="SunPulse" 
+      style={{ 
+        width: collapsed ? 32 : 36, 
+        height: collapsed ? 32 : 36,
+        borderRadius: '50%',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+      }} 
+    />
+    {!collapsed && (
+      <span style={{ 
+        fontSize: 18, 
+        fontWeight: 700,
+        background: 'linear-gradient(90deg, #f5a623, #1890ff)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+      }}>
+        SunPulse
+      </span>
+    )}
+  </div>
+);
+
+// Footer con credits
+const AppFooter: React.FC = () => (
+  <div style={{
+    textAlign: 'center',
+    padding: '12px 24px',
+    background: '#fafafa',
+    borderTop: '1px solid #f0f0f0',
+    fontSize: 12,
+    color: '#8c8c8c',
+  }}>
+    <span>Made with ☀️ by </span>
+    <a 
+      href="https://giovannitommasini.it" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      style={{ color: '#1890ff', fontWeight: 500 }}
+    >
+      Giovanni Tommasini
+    </a>
+    <span style={{ margin: '0 8px' }}>•</span>
+    <span>© {new Date().getFullYear()} SunPulse</span>
+  </div>
+);
+
 // Layout interno per pagine autenticate
 const AuthenticatedLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -53,15 +111,8 @@ const AuthenticatedLayout: React.FC = () => {
   return (
     <ThemedLayoutV2
       Header={() => <Header collapsed={collapsed} onCollapse={setCollapsed} />}
-      Title={({ collapsed }) => (
-        <div style={{ 
-          fontSize: collapsed ? 14 : 16, 
-          fontWeight: 'bold',
-          color: '#1890ff'
-        }}>
-          {collapsed ? 'SD' : 'SunPulse'}
-        </div>
-      )}
+      Title={({ collapsed }) => <SidebarTitle collapsed={collapsed} />}
+      Footer={() => <AppFooter />}
     >
       <Outlet />
     </ThemedLayoutV2>

@@ -32,7 +32,12 @@ def create_app() -> FastAPI:
     # Middleware CORS
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000", "http://localhost"],
+        allow_origins=[
+            "http://localhost:3000",
+            "http://localhost",
+            "https://sunpulse.giovannitommasini.it",
+            "http://sunpulse.netbird.selfhosted:3000",
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -41,7 +46,14 @@ def create_app() -> FastAPI:
     # Middleware per host fidati
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["localhost", "127.0.0.1", "0.0.0.0"],
+        allowed_hosts=[
+            "localhost",
+            "127.0.0.1",
+            "0.0.0.0",
+            "sunpulse.giovannitommasini.it",
+            "sunpulse.netbird.selfhosted",
+            "backend",  # Nome container Docker
+        ],
     )
     
     # Router API

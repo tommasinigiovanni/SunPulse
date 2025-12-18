@@ -74,7 +74,6 @@ services:
   # Override Backend per Traefik
   backend:
     ports: []  # Rimuove il port mapping diretto
-    volumes: []  # IMPORTANTE: rimuove volume mount codice (solo per dev)
     labels:
       - "traefik.enable=true"
       # API sotto /api
@@ -86,14 +85,6 @@ services:
       - "traefik.http.routers.backend-ws.rule=Host(`${DOMAIN}`) && PathPrefix(`/ws`)"
       - "traefik.http.routers.backend-ws.entrypoints=websecure"
       - "traefik.http.routers.backend-ws.tls.certresolver=letsencrypt"
-  
-  # Rimuovi volume mounts per Celery (solo per dev)
-  celery-worker:
-    volumes: []
-  
-  celery-beat:
-    volumes:
-      - celery_beat_data:/app/celerybeat-schedule  # Mantieni solo questo
 
   # Disabilita nginx (usiamo Traefik)
   nginx:

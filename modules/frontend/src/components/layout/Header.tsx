@@ -82,9 +82,28 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onCollapse }) => {
           }}
         />
 
-        {/* App Title */}
+        {/* App Title with Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Text strong style={{ fontSize: 18, color: '#1890ff' }}>
+          <img 
+            src="/sunpulse-logo.png" 
+            alt="SunPulse" 
+            style={{ 
+              width: 28, 
+              height: 28, 
+              borderRadius: '50%',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            }} 
+          />
+          <Text 
+            strong 
+            style={{ 
+              fontSize: 18, 
+              background: 'linear-gradient(90deg, #f5a623, #1890ff)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
             SunPulse
           </Text>
           

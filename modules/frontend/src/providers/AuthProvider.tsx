@@ -76,12 +76,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const audience = import.meta.env.VITE_AUTH0_AUDIENCE;
   const redirectUri = window.location.origin;
 
-  // Modalità sviluppo se forzata, Auth0 non configurato, o è il dominio di test
+  // Auth0 richiede "secure origin" (HTTPS o localhost)
+  const isSecureOrigin = window.location.protocol === 'https:' || 
+                         window.location.hostname === 'localhost' ||
+                         window.location.hostname === '127.0.0.1';
+
+  // Modalità sviluppo se:
+  // - Forzata via env
+  // - Auth0 non configurato
+  // - Non siamo su secure origin (Auth0 SDK fallisce)
   const forceDevMode = import.meta.env.VITE_AUTH_DEV_MODE === 'true';
-  const isDevelopmentMode = forceDevMode || !domain || !clientId;
+  const isDevelopmentMode = forceDevMode || !domain || !clientId || !isSecureOrigin;
 
   if (isDevelopmentMode) {
-    console.warn('🔧 Auth0 non configurato correttamente - usando modalità sviluppo');
+    const reason = !isSecureOrigin 
+      ? 'HTTP non sicuro (usa HTTPS per Auth0)' 
+      : !domain || !clientId 
+        ? 'Auth0 non configurato' 
+        : 'Modalità sviluppo forzata';
+    console.warn(`🔧 ${reason} - usando mock auth`);
     return <MockAuthProvider>{children}</MockAuthProvider>;
   }
 
@@ -106,7 +119,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth0 = () => {
   const domain = import.meta.env.VITE_AUTH0_DOMAIN;
   const forceDevMode = import.meta.env.VITE_AUTH_DEV_MODE === 'true';
-  const isDevelopmentMode = forceDevMode || !domain;
+  
+  const isSecureOrigin = window.location.protocol === 'https:' || 
+                         window.location.hostname === 'localhost' ||
+                         window.location.hostname === '127.0.0.1';
+  
+  const isDevelopmentMode = forceDevMode || !domain || !isSecureOrigin;
   
   if (isDevelopmentMode) {
     return useMockAuth0();

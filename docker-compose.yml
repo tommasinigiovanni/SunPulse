@@ -95,6 +95,7 @@ services:
       N8N_HOST: ${N8N_HOST:-localhost}
       N8N_PORT: 5678
       N8N_PROTOCOL: http
+      N8N_SECURE_COOKIE: "false"  # Permette accesso via HTTP (non solo HTTPS)
       WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678}
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
@@ -103,8 +104,7 @@ services:
       DB_POSTGRESDB_USER: ${POSTGRES_USER:-postgres}
       DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - ./modules/n8n/data:/home/node/.n8n
-      - ./modules/n8n/workflows:/home/node/.n8n/workflows
+      - n8n_data:/home/node/.n8n
     ports:
       - "${N8N_PORT:-5678}:5678"
     depends_on:
@@ -191,8 +191,7 @@ services:
       # Email (Resend)
       RESEND_API_KEY: ${RESEND_API_KEY}
       NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL}
-    volumes:
-      - ./modules/backend:/app
+    # NOTA: volume mount rimosso per produzione (vedi docker-compose.dev.yml per sviluppo)
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -259,8 +258,7 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       DEBUG: ${DEBUG:-False}
       ENVIRONMENT: ${ENVIRONMENT:-production}
-    volumes:
-      - ./modules/backend:/app
+    # NOTA: volume mount rimosso per produzione (vedi docker-compose.dev.yml per sviluppo)
     depends_on:
       postgres:
         condition: service_healthy
@@ -322,7 +320,6 @@ services:
       DEBUG: ${DEBUG:-False}
       ENVIRONMENT: ${ENVIRONMENT:-production}
     volumes:
-      - ./modules/backend:/app
       - celery_beat_data:/app/celerybeat-schedule
     depends_on:
       postgres:
@@ -352,15 +349,13 @@ services:
         VITE_AUTH_DEV_MODE: ${VITE_AUTH_DEV_MODE:-true}
     container_name: sunpulse_frontend
     restart: unless-stopped
-    volumes:
-      - ./modules/frontend:/app
-      - frontend_node_modules:/app/node_modules
+    # NOTA: volume mount rimosso per produzione (vedi docker-compose.dev.yml per sviluppo)
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:
       - backend
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -395,6 +390,7 @@ volumes:
   frontend_node_modules:
   nginx_logs:
   celery_beat_data:
+  n8n_data:
 
 networks:
   sunpulse_network:

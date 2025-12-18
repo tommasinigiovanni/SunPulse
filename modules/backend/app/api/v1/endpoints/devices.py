@@ -16,7 +16,7 @@ logger = structlog.get_logger()
 
 router = APIRouter()
 
-@router.get("/", response_model=List[DeviceResponse])
+@router.get("", response_model=List[DeviceResponse])
 async def get_devices():
     """Get all devices"""
     settings = get_settings()

@@ -40,13 +40,20 @@ async def get_daily_energy_from_historical(zcs_service, thing_keys: List[str]) -
         
         for thing_key, device_data in hist_result['data'].items():
             if not device_data:
+                logger.debug("No device_data for thing_key", thing_key=thing_key)
                 continue
-                
+            
+            # ZCS può restituire i dati in formati diversi
             hist = device_data.get('historicData', {}).get('params', {}).get('value', [])
             if not hist or len(hist) == 0:
+                logger.debug("No hist data", thing_key=thing_key, device_data_keys=list(device_data.keys()) if device_data else None)
                 continue
-                
+            
+            # hist[0] è un dict con il thing_key come chiave
             zcs = hist[0].get(thing_key, {})
+            
+            if not zcs:
+                logger.debug("No ZCS data in hist[0]", thing_key=thing_key, hist_keys=list(hist[0].keys()) if hist[0] else None)
             
             # Mappa campi: nome ZCS -> nome interno
             field_mapping = {
@@ -66,6 +73,8 @@ async def get_daily_energy_from_historical(zcs_service, thing_keys: List[str]) -
                     last = vals[-1] if vals[-1] else 0
                     diff = max(0, last - first)  # Energia non può essere negativa
                     daily_energy[internal_field] += diff
+                    if diff > 0:
+                        logger.debug("Energy diff calculated", field=zcs_field, first=first, last=last, diff=diff)
         
         logger.debug("Daily energy calculated from historical", daily_energy=daily_energy)
         return daily_energy
