@@ -36,7 +36,12 @@ export const useAuth = () => {
   };
 
   const logoutUser = () => {
-    logout();
+    // Configura returnTo per Auth0 logout
+    logout({ 
+      logoutParams: {
+        returnTo: window.location.origin 
+      }
+    });
   };
 
   // Informazioni utente formattate

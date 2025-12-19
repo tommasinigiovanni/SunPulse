@@ -41,6 +41,10 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Copy built application
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
+# Ensure all static files are readable
+RUN chmod -R 644 /usr/share/nginx/html/*.png /usr/share/nginx/html/*.jpeg 2>/dev/null || true
+RUN find /usr/share/nginx/html -type d -exec chmod 755 {} \;
+
 # Add health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1

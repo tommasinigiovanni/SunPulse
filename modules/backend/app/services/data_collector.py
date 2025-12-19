@@ -62,7 +62,19 @@ celery_app.conf.beat_schedule = {
     'health-check': {
         'task': 'app.services.data_collector.health_check_task',
         'schedule': 300.0,  # 5 minuti
-    }
+    },
+    
+    # Raccolta energia giornaliera alle 00:05 ogni giorno
+    'collect-daily-energy': {
+        'task': 'app.services.data_collector.collect_daily_energy',
+        'schedule': crontab(hour=0, minute=5),  # 00:05 UTC
+    },
+    
+    # Pulizia cache vecchia alle 03:00 ogni giorno
+    'cleanup-old-cache': {
+        'task': 'app.services.data_collector.cleanup_old_cache',
+        'schedule': crontab(hour=3, minute=0),  # 03:00 UTC
+    },
 }
 
 class DataCollectionError(Exception):
@@ -211,6 +223,202 @@ async def _health_check_async() -> Dict[str, Any]:
             "error": str(e),
             "timestamp": datetime.utcnow().isoformat()
         }
+
+@celery_app.task(bind=True, max_retries=3)
+def collect_daily_energy(self):
+    """
+    Task Celery: Raccolta e persistenza energia giornaliera
+    
+    Eseguito ogni giorno alle 00:05 per salvare i dati del giorno precedente.
+    Calcola l'energia giornaliera dalla differenza dei contatori TotalDecimal.
+    """
+    task_id = self.request.id
+    start_time = datetime.utcnow()
+    
+    logger.info("Starting daily energy collection", task_id=task_id)
+    
+    try:
+        result = asyncio.run(_collect_daily_energy_async())
+        
+        duration = (datetime.utcnow() - start_time).total_seconds()
+        logger.info(
+            "Daily energy collection completed",
+            task_id=task_id,
+            duration_seconds=duration,
+            **result
+        )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(
+            "Daily energy collection failed",
+            task_id=task_id,
+            error=str(e),
+            retry_count=self.request.retries
+        )
+        
+        countdown = 60 * (2 ** self.request.retries)  # Retry dopo 1, 2, 4 minuti
+        raise self.retry(exc=e, countdown=countdown, max_retries=3)
+
+
+async def _collect_daily_energy_async() -> Dict[str, Any]:
+    """Implementazione async della raccolta energia giornaliera"""
+    from ..services.database import get_db_session
+    from ..models.device import DailyEnergy
+    from sqlalchemy import select
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+    
+    zcs_service = await get_zcs_service()
+    settings = get_settings()
+    thing_keys = settings.device_thing_keys
+    
+    if not thing_keys:
+        return {"devices_processed": 0, "error": "No devices configured"}
+    
+    # Calcola il giorno precedente
+    yesterday = (datetime.utcnow() - timedelta(days=1)).date()
+    yesterday_start = datetime.combine(yesterday, datetime.min.time())
+    yesterday_end = datetime.combine(yesterday, datetime.max.time())
+    
+    logger.info("Collecting daily energy", date=str(yesterday), thing_keys=thing_keys)
+    
+    # Ottieni dati storici dal giorno precedente
+    hist_result = await zcs_service.get_historic_data(
+        thing_keys, 
+        yesterday_start, 
+        yesterday_end, 
+        "1h"
+    )
+    
+    if not hist_result.get('success'):
+        raise DataCollectionError(f"ZCS API failed: {hist_result.get('error')}")
+    
+    processed = 0
+    errors = 0
+    
+    async with get_db_session() as session:
+        for thing_key in thing_keys:
+            try:
+                device_data = hist_result['data'].get(thing_key)
+                if not device_data:
+                    continue
+                
+                hist = device_data.get('historicData', {}).get('params', {}).get('value', [])
+                if not hist or len(hist) == 0:
+                    continue
+                
+                zcs = hist[0].get(thing_key, {})
+                
+                # Calcola energie dalla differenza dei TotalDecimal
+                field_mapping = {
+                    "energyGeneratingTotalDecimal": "energy_generating",
+                    "energyConsumingTotalDecimal": "energy_consuming",
+                    "energyAutoconsumingTotalDecimal": "energy_autoconsuming",
+                    "energyImportingTotalDecimal": "energy_importing",
+                    "energyExportingTotalDecimal": "energy_exporting",
+                    "energyChargingTotalDecimal": "energy_charging",
+                    "energyDischargingTotalDecimal": "energy_discharging",
+                }
+                
+                daily_data = {
+                    "device_thing_key": thing_key,
+                    "date": yesterday,
+                }
+                
+                for zcs_field, db_field in field_mapping.items():
+                    vals = zcs.get(zcs_field, [])
+                    if isinstance(vals, list) and len(vals) >= 2:
+                        first = vals[0] if vals[0] else 0
+                        last = vals[-1] if vals[-1] else 0
+                        daily_data[db_field] = max(0, last - first)
+                    else:
+                        daily_data[db_field] = 0
+                
+                # Salva contatori totali per verifica
+                gen_total = zcs.get("energyGeneratingTotalDecimal", [])
+                cons_total = zcs.get("energyConsumingTotalDecimal", [])
+                if gen_total and len(gen_total) > 0:
+                    daily_data["energy_generating_total"] = gen_total[-1]
+                if cons_total and len(cons_total) > 0:
+                    daily_data["energy_consuming_total"] = cons_total[-1]
+                
+                # Upsert in database
+                stmt = pg_insert(DailyEnergy).values(**daily_data)
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=['device_thing_key', 'date'],
+                    set_=daily_data
+                )
+                await session.execute(stmt)
+                
+                processed += 1
+                
+                logger.debug(
+                    "Daily energy saved",
+                    thing_key=thing_key,
+                    date=str(yesterday),
+                    generating=daily_data.get("energy_generating", 0),
+                    consuming=daily_data.get("energy_consuming", 0)
+                )
+                
+            except Exception as e:
+                logger.error("Error processing device daily energy", thing_key=thing_key, error=str(e))
+                errors += 1
+        
+        await session.commit()
+    
+    return {
+        "devices_processed": processed,
+        "errors": errors,
+        "date": str(yesterday),
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@celery_app.task
+def cleanup_old_cache(self=None):
+    """
+    Task Celery: Pulizia cache vecchia
+    
+    Eseguito ogni notte alle 03:00 per rimuovere dati cached obsoleti.
+    """
+    logger.info("Starting cache cleanup")
+    
+    try:
+        result = asyncio.run(_cleanup_cache_async())
+        logger.info("Cache cleanup completed", **result)
+        return result
+        
+    except Exception as e:
+        logger.error("Cache cleanup failed", error=str(e))
+        return {"success": False, "error": str(e)}
+
+
+async def _cleanup_cache_async() -> Dict[str, Any]:
+    """Implementazione async della pulizia cache"""
+    cache_service = await get_cache_service()
+    
+    # Invalida pattern vecchi
+    patterns_to_clean = [
+        "device:realtime:*",
+        "device:historic:*",
+        "system:realtime:*",
+    ]
+    
+    total_invalidated = 0
+    for pattern in patterns_to_clean:
+        try:
+            count = await cache_service.invalidate_pattern(pattern)
+            total_invalidated += count
+        except Exception as e:
+            logger.warning("Error cleaning pattern", pattern=pattern, error=str(e))
+    
+    return {
+        "success": True,
+        "invalidated_keys": total_invalidated,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
 
 def get_task_status(task_id: str) -> Dict[str, Any]:
     """Ottieni status di un task Celery"""

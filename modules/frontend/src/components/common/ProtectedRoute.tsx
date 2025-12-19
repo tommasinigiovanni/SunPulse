@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth0 } from '../../providers/AuthProvider';
 import { Spin, Result, Button } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
+import { LandingPage } from '../../pages/LandingPage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -16,7 +17,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { isAuthenticated, isLoading, loginWithRedirect, user, error } = useAuth0();
 
-  // Loading state
+  // Loading state con logo
   if (isLoading) {
     return (
       <div style={{ 
@@ -25,15 +26,33 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         alignItems: 'center', 
         height: '100vh',
         flexDirection: 'column',
-        gap: 16
+        gap: 24,
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       }}>
+        <img 
+          src="/sunpulse-logo.png" 
+          alt="SunPulse" 
+          style={{ 
+            width: 80, 
+            height: 80, 
+            borderRadius: '50%',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            animation: 'pulse 2s ease-in-out infinite',
+          }} 
+        />
         <Spin 
           size="large" 
-          indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />}
+          indicator={<LoadingOutlined style={{ fontSize: 32, color: '#fff' }} spin />}
         />
-        <div style={{ color: '#666', fontSize: 16 }}>
-          Caricamento autenticazione...
+        <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16 }}>
+          Caricamento SunPulse...
         </div>
+        <style>{`
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -54,24 +73,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // Not authenticated
+  // Not authenticated - mostra landing page
   if (!isAuthenticated) {
     if (fallback) {
       return <>{fallback}</>;
     }
 
-    return (
-      <Result
-        status="403"
-        title="Accesso Richiesto"
-        subTitle="Devi effettuare il login per accedere a questa pagina"
-        extra={
-          <Button type="primary" onClick={() => loginWithRedirect()}>
-            Accedi
-          </Button>
-        }
-      />
-    );
+    return <LandingPage onLogin={() => loginWithRedirect()} />;
   }
 
   // Check permissions if required

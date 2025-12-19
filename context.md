@@ -1,7 +1,7 @@
 # ☀️ SunPulse - Context File
-> **Data ultimo aggiornamento:** 2025-12-16  
-> **Versione progetto:** v2.0.0  
-> **Stato:** Fase 2 completata, Fase 3 in corso
+> **Data ultimo aggiornamento:** 2025-12-19  
+> **Versione progetto:** v2.1.0  
+> **Stato:** Fase 3 quasi completata, deploy HTTPS attivo
 
 ---
 
@@ -31,10 +31,10 @@ Piattaforma di monitoraggio impianti fotovoltaici che integra le API ZCS Azzurro
 - [x] InfluxDB Writer ottimizzato
 - [x] API Endpoints completi (health, devices, data, alarms, tasks)
 
-### Fase 3 - Dashboard Frontend 🔄 IN CORSO
+### Fase 3 - Dashboard Frontend ✅ QUASI COMPLETATA
 - [x] Setup RefineJS + Ant Design
 - [x] Struttura routing base
-- [x] Componenti layout (Header)
+- [x] Componenti layout (Header, Footer con credits)
 - [x] DeviceList component
 - [x] Dashboard component con bilancio energetico
 - [x] PowerChart component ottimizzato
@@ -45,12 +45,17 @@ Piattaforma di monitoraggio impianti fotovoltaici che integra le API ZCS Azzurro
 - [x] Alarms Page ✅ 2025-12-12
 - [x] Settings Page ✅ 2025-12-12
 - [x] Email Notifications (Resend) ✅ 2025-12-16
+- [x] Logo e branding ✅ 2025-12-19
+- [x] Manuale Utente (`doc/MANUALE_UTENTE.md`) ✅ 2025-12-19
 - [ ] Status Page
 - [ ] Documentazione API (Postman/Bruno)
-- [ ] Documentazione Utente
+- [ ] Persistenza Settings
 
-### Fase 4 - Production Ready ⏳ NON INIZIATA
-- [ ] SSL/HTTPS
+### Fase 4 - Production Ready 🔄 IN CORSO
+- [x] SSL/HTTPS con Traefik + Let's Encrypt ✅ 2025-12-19
+- [x] Deploy su VM con Mutagen sync ✅ 2025-12-19
+- [x] CORS e TrustedHost configurati ✅ 2025-12-19
+- [ ] Caching dati storici in PostgreSQL
 - [ ] Performance optimization
 - [ ] Monitoring Prometheus/Grafana
 - [ ] CI/CD pipeline

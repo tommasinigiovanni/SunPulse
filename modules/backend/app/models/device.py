@@ -129,6 +129,71 @@ class DeviceAlarm(Base):
     device = relationship("Device", back_populates="alarms")
 
 # ==============================================================================
+# Daily Energy Model (Cached Historical Data)
+# ==============================================================================
+
+class DailyEnergy(Base):
+    """Energia giornaliera aggregata per dispositivo (cache dati storici)"""
+    __tablename__ = "daily_energy"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    device_thing_key = Column(String(50), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    
+    # Produzione (kWh)
+    energy_generating = Column(Float, default=0)      # Energia prodotta
+    energy_exporting = Column(Float, default=0)       # Immessa in rete
+    energy_autoconsuming = Column(Float, default=0)   # Autoconsumata
+    
+    # Consumo (kWh)
+    energy_consuming = Column(Float, default=0)       # Consumo totale
+    energy_importing = Column(Float, default=0)       # Dalla rete
+    
+    # Batteria (kWh)
+    energy_charging = Column(Float, default=0)        # Caricata
+    energy_discharging = Column(Float, default=0)     # Scaricata
+    
+    # Contatori cumulativi (per verifica)
+    energy_generating_total = Column(Float)
+    energy_consuming_total = Column(Float)
+    
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    __table_args__ = (
+        # Constraint UNIQUE per upsert
+        {"extend_existing": True},
+    )
+    
+    # Nota: il constraint UNIQUE viene creato via SQL diretto
+    
+    def __repr__(self):
+        return f"<DailyEnergy(device={self.device_thing_key}, date={self.date}, gen={self.energy_generating})>"
+
+
+class AlarmHistory(Base):
+    """Storico allarmi per dispositivo"""
+    __tablename__ = "alarm_history"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    device_thing_key = Column(String(50), nullable=False, index=True)
+    alarm_codes = Column(JSON)  # Lista di codici allarme attivi
+    started_at = Column(DateTime, nullable=False, index=True)
+    resolved_at = Column(DateTime)
+    
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        {"extend_existing": True},
+    )
+    
+    def __repr__(self):
+        return f"<AlarmHistory(device={self.device_thing_key}, codes={self.alarm_codes})>"
+
+
+# ==============================================================================
 # Pydantic Models (API & Validation)
 # ==============================================================================
 
@@ -413,3 +478,42 @@ class AlarmResponse(BaseModel):
 
 # Aliases for backward compatibility
 AlarmLevel = AlarmSeverity  # Alias per compatibilità
+
+# ==============================================================================
+# Daily Energy Pydantic Models
+# ==============================================================================
+
+class DailyEnergyBase(BaseModel):
+    """Schema base per energia giornaliera"""
+    device_thing_key: str
+    date: str  # YYYY-MM-DD
+    energy_generating: float = 0
+    energy_exporting: float = 0
+    energy_autoconsuming: float = 0
+    energy_consuming: float = 0
+    energy_importing: float = 0
+    energy_charging: float = 0
+    energy_discharging: float = 0
+
+class DailyEnergyResponse(DailyEnergyBase):
+    """Schema risposta energia giornaliera"""
+    id: int
+    energy_generating_total: Optional[float] = None
+    energy_consuming_total: Optional[float] = None
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class DailyEnergySummary(BaseModel):
+    """Riepilogo energia per periodo"""
+    period_start: str
+    period_end: str
+    total_generating: float = 0
+    total_consuming: float = 0
+    total_exporting: float = 0
+    total_importing: float = 0
+    total_autoconsuming: float = 0
+    avg_daily_generating: float = 0
+    avg_daily_consuming: float = 0
+    days_count: int = 0

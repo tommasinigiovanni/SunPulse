@@ -10,7 +10,9 @@ from ....config.settings import get_settings
 from ....services.zcs_api_service import get_zcs_service
 from ....services.cache_service import get_cache_service, DataType, make_cache_key
 from ....services.data_collector import get_task_status, celery_app
+from ....services.database import get_db_session
 from ....utils.circuit_breaker import get_all_circuit_breaker_stats
+from ....models.device import DailyEnergy
 
 logger = structlog.get_logger()
 
@@ -139,17 +141,17 @@ async def get_realtime_data() -> Dict[str, Any]:
                     # Estrai dati reali ZCS e trasforma in formato frontend
                     zcs_device = device_data.get('realtimeData', {}).get('params', {}).get('value', [{}])[0].get(thing_key, {})
                     
-                    # Dati energetici giornalieri: usa direttamente i campi energy* dall'API realtime
-                    # Questi sono i valori giornalieri già calcolati da ZCS (si resettano a mezzanotte)
-                    # Fallback ai dati storici solo se i campi realtime sono vuoti
+                    # Dati energetici giornalieri: PREFERISCI i dati storici (TotalDecimal)
+                    # perché sono più accurati (calcolati dalla differenza dei contatori cumulativi)
+                    # I campi energy* realtime di ZCS si resettano a mezzanotte e possono essere imprecisi
                     device_daily = {
-                        "energy_generating": zcs_device.get("energyGenerating", 0) or daily_energy.get("energy_generating", 0),
-                        "energy_consuming": zcs_device.get("energyConsuming", 0) or daily_energy.get("energy_consuming", 0),
-                        "energy_autoconsuming": zcs_device.get("energyAutoconsuming", 0) or daily_energy.get("energy_autoconsuming", 0),
-                        "energy_from_grid": zcs_device.get("energyImporting", 0) or daily_energy.get("energy_importing", 0),
-                        "energy_to_grid": zcs_device.get("energyExporting", 0) or daily_energy.get("energy_exporting", 0),
-                        "energy_to_battery": zcs_device.get("energyCharging", 0) or daily_energy.get("energy_charging", 0),
-                        "energy_from_battery": zcs_device.get("energyDischarging", 0) or daily_energy.get("energy_discharging", 0),
+                        "energy_generating": daily_energy.get("energy_generating", 0) or zcs_device.get("energyGenerating", 0) or 0,
+                        "energy_consuming": daily_energy.get("energy_consuming", 0) or zcs_device.get("energyConsuming", 0) or 0,
+                        "energy_autoconsuming": daily_energy.get("energy_autoconsuming", 0) or zcs_device.get("energyAutoconsuming", 0) or 0,
+                        "energy_from_grid": daily_energy.get("energy_importing", 0) or zcs_device.get("energyImporting", 0) or 0,
+                        "energy_to_grid": daily_energy.get("energy_exporting", 0) or zcs_device.get("energyExporting", 0) or 0,
+                        "energy_to_battery": daily_energy.get("energy_charging", 0) or zcs_device.get("energyCharging", 0) or 0,
+                        "energy_from_battery": daily_energy.get("energy_discharging", 0) or zcs_device.get("energyDischarging", 0) or 0,
                     }
                     
                     logger.debug("Device daily energy", thing_key=thing_key, daily=device_daily, 
@@ -773,4 +775,113 @@ async def clear_system_cache() -> Dict[str, Any]:
             
     except Exception as e:
         logger.error("Error clearing system cache", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to clear cache: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to clear cache: {str(e)}")
+
+
+@router.get("/energy/daily")
+async def get_daily_energy_from_db(
+    device_thing_key: Optional[str] = Query(None, description="Filtra per dispositivo"),
+    start_date: Optional[str] = Query(None, description="Data inizio (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="Data fine (YYYY-MM-DD)"),
+    days: int = Query(30, description="Numero di giorni (se start/end non specificati)")
+) -> Dict[str, Any]:
+    """
+    Recupera dati energia giornaliera dal database (cached).
+    
+    Usa i dati persistiti invece di chiamare l'API ZCS.
+    Molto più veloce e non soggetto a rate limiting.
+    """
+    from sqlalchemy import select
+    
+    try:
+        # Determina il range di date
+        if end_date:
+            end = datetime.strptime(end_date, "%Y-%m-%d").date()
+        else:
+            end = datetime.utcnow().date()
+        
+        if start_date:
+            start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        else:
+            start = end - timedelta(days=days)
+        
+        async with get_db_session() as session:
+            # Query base
+            query = select(DailyEnergy).where(
+                DailyEnergy.date >= start,
+                DailyEnergy.date <= end
+            )
+            
+            if device_thing_key:
+                query = query.where(DailyEnergy.device_thing_key == device_thing_key)
+            
+            query = query.order_by(DailyEnergy.date.desc())
+            
+            result = await session.execute(query)
+            records = result.scalars().all()
+            
+            # Formatta risposta
+            data = []
+            for record in records:
+                data.append({
+                    "date": str(record.date),
+                    "device_thing_key": record.device_thing_key,
+                    "energy_generating": record.energy_generating or 0,
+                    "energy_consuming": record.energy_consuming or 0,
+                    "energy_exporting": record.energy_exporting or 0,
+                    "energy_importing": record.energy_importing or 0,
+                    "energy_autoconsuming": record.energy_autoconsuming or 0,
+                    "energy_charging": record.energy_charging or 0,
+                    "energy_discharging": record.energy_discharging or 0,
+                })
+            
+            # Calcola totali
+            totals = {
+                "total_generating": sum(d["energy_generating"] for d in data),
+                "total_consuming": sum(d["energy_consuming"] for d in data),
+                "total_exporting": sum(d["energy_exporting"] for d in data),
+                "total_importing": sum(d["energy_importing"] for d in data),
+                "total_autoconsuming": sum(d["energy_autoconsuming"] for d in data),
+            }
+            
+            return {
+                "data": data,
+                "totals": totals,
+                "period": {
+                    "start": str(start),
+                    "end": str(end),
+                    "days": len(set(d["date"] for d in data))
+                },
+                "source": "database",
+                "record_count": len(data),
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        
+    except Exception as e:
+        logger.error("Error fetching daily energy from DB", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@router.post("/energy/collect-now")
+async def trigger_daily_energy_collection() -> Dict[str, Any]:
+    """
+    Trigger manuale della raccolta energia giornaliera.
+    
+    Normalmente eseguito automaticamente alle 00:05 ogni giorno.
+    """
+    try:
+        task = celery_app.send_task(
+            'app.services.data_collector.collect_daily_energy'
+        )
+        
+        logger.info("Daily energy collection triggered manually", task_id=task.id)
+        
+        return {
+            "message": "Daily energy collection triggered",
+            "task_id": task.id,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error("Error triggering daily energy collection", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to trigger collection: {str(e)}") 

@@ -1,6 +1,6 @@
 # SunPulse - TODO
 
-> **Last updated:** 2025-12-16  
+> **Last updated:** 2025-12-19  
 > **Legend:** 🔴 Critical | ⚠️ High | 🟡 Medium | 🟢 Low
 
 ---
@@ -225,6 +225,26 @@
   - **Effort stimato**: 8-12h
   - **Priorità**: Media
 
+### Caching e Persistenza Dati
+
+- [ ] **[FEAT-006]** Strategia Caching e Persistenza Dati Storici
+  - **Descrizione**: Implementare persistenza dati storici in PostgreSQL per evitare chiamate API ZCS ripetute
+  - **Componenti**:
+    - [ ] Tabella `daily_energy` in PostgreSQL (schema già definito)
+    - [ ] Tabella `alarm_history` per storico allarmi
+    - [ ] Task Celery `collect_daily_energy` (ogni giorno 00:05)
+    - [ ] Task Celery `collect_alarms` (ogni ora)
+    - [ ] Task Celery `cleanup_cache` (pulizia vecchia)
+    - [ ] Endpoint API per query dati storici da DB (non da ZCS)
+    - [ ] Migration Alembic per nuove tabelle
+  - **Benefici**:
+    - Meno chiamate all'API ZCS (rate limiting)
+    - Dati storici sempre disponibili (anche se ZCS offline)
+    - Performance migliori per Analytics
+    - Backup dati per report e fatturazione
+  - **Effort stimato**: 8-12h
+  - **Priorità**: Alta
+
 ### Audit Log
 
 - [ ] **[FEAT-005]** Sistema Audit Log Completo
@@ -324,10 +344,10 @@
 | ⚠️ High | 6 | 1/6 completed |
 | 🟡 Medium | 15 | **6/15 completed** |
 | 🟢 Low | 8 | 0/8 completed |
-| 🚀 New Features | 5 | 0/5 completed |
+| 🚀 New Features | 6 | 0/6 completed |
 | 📋 Pages | 5 | 4/5 completed |
 | 🔧 Infra | 6 | 0/6 completed |
-| **TOTAL** | **52** | **18/52** |
+| **TOTAL** | **53** | **18/53** |
 
 ---
 
@@ -338,3 +358,7 @@
 - Both backend and frontend have issues to resolve
 - **2025-12-12**: Dashboard riorganizzata, corretti campi ZCS per batteria, risolto refresh grafico
 - **2025-12-12**: Completate tutte le 4 pagine mancanti (DeviceDetail, Analytics, Alarms, Settings)
+- **2025-12-19**: Creato manuale utente (`doc/MANUALE_UTENTE.md`) con documentazione API ZCS completa
+- **2025-12-19**: Definita strategia caching (FEAT-006) per persistenza dati storici
+- **2025-12-19**: Fix priorità dati storici vs realtime per energia giornaliera (usa TotalDecimal)
+- **2025-12-19**: Deploy HTTPS con Traefik + Let's Encrypt completato

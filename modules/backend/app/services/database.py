@@ -2,13 +2,21 @@
 Servizio Database per SunPulse
 """
 import asyncio
+from contextlib import asynccontextmanager
 import asyncpg
 import redis.asyncio as redis
 import structlog
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.pool import NullPool
 
 from ..config.settings import get_settings
+from ..models.device import Base
 
 logger = structlog.get_logger()
+
+# SQLAlchemy Async Engine
+_async_engine = None
+_async_session_factory = None
 
 class DatabaseService:
     """Servizio per gestire le connessioni ai database"""
@@ -113,7 +121,58 @@ async def init_db():
 
 async def close_db():
     """Chiudi connessioni database"""
-    global _db_service
+    global _db_service, _async_engine
     if _db_service:
         await _db_service.close_connections()
-        _db_service = None 
+        _db_service = None
+    if _async_engine:
+        await _async_engine.dispose()
+        _async_engine = None
+
+
+async def get_async_engine():
+    """Ottieni SQLAlchemy async engine"""
+    global _async_engine, _async_session_factory
+    
+    if _async_engine is None:
+        settings = get_settings()
+        # Converti URL PostgreSQL per asyncpg
+        db_url = settings.database_url.replace("postgresql://", "postgresql+asyncpg://")
+        
+        _async_engine = create_async_engine(
+            db_url,
+            poolclass=NullPool,  # Use NullPool per evitare problemi con async
+            echo=False,
+        )
+        
+        _async_session_factory = async_sessionmaker(
+            bind=_async_engine,
+            class_=AsyncSession,
+            expire_on_commit=False,
+        )
+        
+        # Crea le tabelle se non esistono
+        async with _async_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+            logger.info("Database tables verified/created")
+    
+    return _async_engine
+
+
+@asynccontextmanager
+async def get_db_session():
+    """Context manager per ottenere una sessione database"""
+    global _async_session_factory
+    
+    if _async_session_factory is None:
+        await get_async_engine()
+    
+    session = _async_session_factory()
+    try:
+        yield session
+    except Exception as e:
+        await session.rollback()
+        logger.error("Database session error", error=str(e))
+        raise
+    finally:
+        await session.close()
