@@ -58,7 +58,7 @@ interface AuditLog {
   error_message?: string;
   request_data?: any;
   response_data?: any;
-  metadata?: any;
+  extra_metadata?: any;
 }
 
 interface AuditStats {
@@ -672,10 +672,10 @@ export const Audit: React.FC = () => {
                 </pre>
               </Descriptions.Item>
             )}
-            {selectedLog.metadata && (
+            {selectedLog.extra_metadata && (
               <Descriptions.Item label="Metadata">
                 <pre style={{ maxHeight: 200, overflow: 'auto', fontSize: 12 }}>
-                  {JSON.stringify(selectedLog.metadata, null, 2)}
+                  {JSON.stringify(selectedLog.extra_metadata, null, 2)}
                 </pre>
               </Descriptions.Item>
             )}

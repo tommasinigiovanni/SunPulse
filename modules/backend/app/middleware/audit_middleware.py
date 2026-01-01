@@ -130,8 +130,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
 
         # Query parameters
         if request.query_params:
-            data["metadata"] = data.get("metadata", {})
-            data["metadata"]["query_params"] = dict(request.query_params)
+            data["extra_metadata"] = data.get("extra_metadata", {})
+            data["extra_metadata"]["query_params"] = dict(request.query_params)
 
         return data
 
@@ -151,8 +151,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
             # Authorization header
             auth_header = request.headers.get("authorization", "")
             if auth_header:
-                user_info["metadata"] = user_info.get("metadata", {})
-                user_info["metadata"]["has_auth"] = True
+                user_info["extra_metadata"] = user_info.get("extra_metadata", {})
+                user_info["extra_metadata"]["has_auth"] = True
 
         # Session tracking
         session_id = request.headers.get("x-session-id") or request.cookies.get("session_id")
@@ -326,11 +326,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 # Importa qui per evitare circular import
                 from app.services.database import get_db_session
 
-                # Ottieni sessione DB
-                async for db in get_db_session():
-                    try:
-                        await self.audit_service.create_log(audit_data, db)
-                    finally:
-                        break  # Una sola iterazione
+                # Ottieni sessione DB usando context manager
+                async with get_db_session() as db:
+                    await self.audit_service.create_log(audit_data, db)
             except Exception as e:
                 logger.error(f"Failed to create audit log: {e}", exc_info=True)

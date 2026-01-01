@@ -88,7 +88,7 @@ class AuditLog(Base):
     # Additional context
     request_data = Column(JSON, nullable=True)  # Dati della richiesta (body, query params)
     response_data = Column(JSON, nullable=True)  # Dati della risposta (limitati)
-    metadata = Column(JSON, nullable=True)  # Metadati aggiuntivi
+    extra_metadata = Column(JSON, nullable=True)  # Metadati aggiuntivi
 
     # Timing
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
@@ -128,7 +128,7 @@ class AuditLogCreate(BaseModel):
     error_message: Optional[str] = None
     request_data: Optional[Dict[str, Any]] = None
     response_data: Optional[Dict[str, Any]] = None
-    metadata: Optional[Dict[str, Any]] = None
+    extra_metadata: Optional[Dict[str, Any]] = None
     duration_ms: Optional[int] = None
     session_id: Optional[str] = None
 
@@ -151,7 +151,7 @@ class AuditLogResponse(BaseModel):
     error_message: Optional[str]
     request_data: Optional[Dict[str, Any]]
     response_data: Optional[Dict[str, Any]]
-    metadata: Optional[Dict[str, Any]]
+    extra_metadata: Optional[Dict[str, Any]]
     timestamp: datetime
     duration_ms: Optional[int]
     session_id: Optional[str]

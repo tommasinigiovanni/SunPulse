@@ -9,7 +9,7 @@ import csv
 import io
 import json
 
-from app.services.database import get_db_session
+from app.services.database import get_db
 from app.services.audit_service import get_audit_service, AuditService
 from app.models.audit import (
     AuditLogResponse,
@@ -41,7 +41,7 @@ async def get_audit_logs(
     sort_by: str = Query("timestamp", description="Campo ordinamento"),
     sort_order: str = Query("desc", description="Ordine (asc/desc)"),
     # Sessione DB
-    db: AsyncSession = Depends(get_db_session),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Recupera audit logs con filtri avanzati
@@ -94,7 +94,7 @@ async def get_audit_logs(
 @router.get("/{log_id}", response_model=AuditLogResponse)
 async def get_audit_log(
     log_id: int,
-    db: AsyncSession = Depends(get_db_session),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Recupera un singolo audit log per ID
@@ -118,7 +118,7 @@ async def get_audit_log(
 async def get_audit_stats(
     date_from: Optional[datetime] = Query(None, description="Data inizio periodo"),
     date_to: Optional[datetime] = Query(None, description="Data fine periodo"),
-    db: AsyncSession = Depends(get_db_session),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Recupera statistiche aggregate sui logs
@@ -149,7 +149,7 @@ async def get_audit_stats(
 async def get_user_activity(
     user_id: str,
     limit: int = Query(100, ge=1, le=500, description="Numero risultati"),
-    db: AsyncSession = Depends(get_db_session),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Recupera l'attività recente di un utente specifico
@@ -169,7 +169,7 @@ async def get_resource_history(
     resource_type: str,
     resource_id: str,
     limit: int = Query(50, ge=1, le=200, description="Numero risultati"),
-    db: AsyncSession = Depends(get_db_session),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Recupera lo storico delle azioni su una risorsa specifica
@@ -198,7 +198,7 @@ async def export_json(
     date_from: Optional[datetime] = Query(None),
     date_to: Optional[datetime] = Query(None),
     limit: int = Query(1000, ge=1, le=10000),
-    db: AsyncSession = Depends(get_db_session),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Esporta audit logs in formato JSON
@@ -270,7 +270,7 @@ async def export_csv(
     date_from: Optional[datetime] = Query(None),
     date_to: Optional[datetime] = Query(None),
     limit: int = Query(1000, ge=1, le=10000),
-    db: AsyncSession = Depends(get_db_session),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Esporta audit logs in formato CSV
@@ -349,7 +349,7 @@ async def export_csv(
 @router.post("/cleanup")
 async def cleanup_old_logs(
     retention_days: Optional[int] = Query(None, description="Giorni di retention (default: 90)"),
-    db: AsyncSession = Depends(get_db_session),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Esegue cleanup manuale dei log più vecchi del periodo di retention

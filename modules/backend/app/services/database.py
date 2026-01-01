@@ -165,10 +165,10 @@ async def get_async_engine():
 async def get_db_session():
     """Context manager per ottenere una sessione database"""
     global _async_session_factory
-    
+
     if _async_session_factory is None:
         await get_async_engine()
-    
+
     session = _async_session_factory()
     try:
         yield session
@@ -178,3 +178,9 @@ async def get_db_session():
         raise
     finally:
         await session.close()
+
+
+async def get_db():
+    """Dependency per FastAPI - restituisce sessione database"""
+    async with get_db_session() as session:
+        yield session
