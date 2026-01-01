@@ -14,7 +14,8 @@
 4. [Struttura Dati](#struttura-dati)
 5. [Strategia di Caching](#strategia-di-caching)
 6. [Guida all'Uso](#guida-alluso)
-7. [Troubleshooting](#troubleshooting)
+7. [Lettura Contatore Gas](#lettura-contatore-gas-coming-soon) ⛽ *Coming Soon*
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -377,9 +378,70 @@ Grafici e trend:
 
 ---
 
-## 7. Troubleshooting
+## 7. Lettura Contatore Gas (Coming Soon)
 
-### 7.1 Dati a 0
+### 7.1 Panoramica
+
+SunPulse permette di registrare le letture del contatore gas per monitorare i consumi domestici. Le letture possono essere inserite in due modi:
+
+| Modalità | Descrizione | Quando usarla |
+|----------|-------------|---------------|
+| **Manuale** | Inserisci il valore letto sul contatore | Sempre affidabile |
+| **OCR da Foto** | Scatta una foto al contatore | Più veloce, evita errori di trascrizione |
+
+### 7.2 Inserimento Manuale
+
+1. Vai alla pagina **Contatori** dal menu laterale
+2. Clicca su **Nuova Lettura**
+3. Seleziona **Gas** come tipo contatore
+4. Inserisci il valore letto (es. `12345.678`)
+5. Seleziona la data della lettura
+6. Aggiungi eventuali note
+7. Clicca **Salva**
+
+> ⚠️ **Nota**: Il sistema verifica che la nuova lettura sia maggiore della precedente
+
+### 7.3 Lettura con OCR
+
+1. Vai alla pagina **Contatori**
+2. Clicca su **Scatta Foto** o **Carica Immagine**
+3. Inquadra il display del contatore
+4. Il sistema riconosce automaticamente le cifre
+5. Verifica il valore rilevato e conferma
+6. Se necessario, correggi manualmente
+
+**Suggerimenti per foto migliori:**
+- 📷 Buona illuminazione (no riflessi)
+- 🔍 Inquadratura frontale del display
+- 📏 Avvicinati per vedere bene le cifre
+- 🧹 Pulisci il vetro del contatore se sporco
+
+### 7.4 Storico e Consumi
+
+Nella sezione **Storico Letture** puoi:
+- 📊 Vedere il grafico dei consumi nel tempo
+- 📋 Consultare la tabella delle letture
+- 📈 Calcolare il consumo tra due date
+- 📥 Esportare i dati in CSV
+
+### 7.5 Calcolo Consumo
+
+Il consumo viene calcolato automaticamente:
+
+```
+Consumo = Lettura Attuale - Lettura Precedente
+```
+
+Esempio:
+- Lettura 1 Dicembre: 12.345 m³
+- Lettura 1 Gennaio: 12.489 m³
+- **Consumo Dicembre**: 144 m³ (12.489 - 12.345)
+
+---
+
+## 8. Troubleshooting
+
+### 8.1 Dati a 0
 
 **Problema**: I valori di energia giornaliera sono 0
 
@@ -390,7 +452,7 @@ Grafici e trend:
 
 **Soluzione**: Il sistema usa i contatori cumulativi (`*TotalDecimal`) per calcolare l'energia giornaliera in modo più preciso.
 
-### 7.2 Disconnesso
+### 8.2 Disconnesso
 
 **Problema**: La dashboard mostra "Disconnesso"
 
@@ -401,7 +463,7 @@ Grafici e trend:
 
 **Soluzione**: Verificare che il backend sia attivo e raggiungibile.
 
-### 7.3 Errore 400/500
+### 8.3 Errore 400/500
 
 **Problema**: Errori nelle chiamate API
 

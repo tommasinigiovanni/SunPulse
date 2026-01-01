@@ -245,6 +245,60 @@
   - **Effort stimato**: 8-12h
   - **Priorità**: Alta
 
+### Lettura Contatore Gas
+
+- [ ] **[FEAT-007]** Lettura Contatore Gas con OCR
+  - **Descrizione**: Permette all'utente di registrare le letture del contatore gas, sia manualmente che tramite riconoscimento automatico da foto (OCR)
+  - **Modalità di input**:
+    - [ ] Inserimento manuale: form con valore lettura, data, note
+    - [ ] OCR da foto: upload immagine del contatore, riconoscimento automatico cifre
+  - **Componenti Backend**:
+    - [ ] Modello database `MeterReading` (gas, estendibile a luce/acqua)
+    - [ ] Servizio OCR (`TesseractOCR` o `Google Cloud Vision`)
+    - [ ] Pre-processing immagine (crop, contrast, threshold)
+    - [ ] Validazione lettura (non può essere < precedente)
+    - [ ] API endpoints CRUD letture
+  - **Componenti Frontend**:
+    - [ ] Nuova pagina `/meters` (Contatori)
+    - [ ] Form inserimento manuale con validazione
+    - [ ] Upload foto con preview e crop
+    - [ ] Conferma/correzione valore OCR
+    - [ ] Storico letture con tabella e grafici
+    - [ ] Calcolo consumo tra letture
+    - [ ] Export dati CSV
+  - **API Endpoints**:
+    - [ ] `POST /api/v1/meters/readings` - Nuova lettura manuale
+    - [ ] `POST /api/v1/meters/readings/ocr` - Upload foto e OCR
+    - [ ] `GET /api/v1/meters/readings` - Lista letture
+    - [ ] `GET /api/v1/meters/readings/{id}` - Dettaglio lettura
+    - [ ] `PUT /api/v1/meters/readings/{id}` - Modifica lettura
+    - [ ] `DELETE /api/v1/meters/readings/{id}` - Elimina lettura
+    - [ ] `GET /api/v1/meters/consumption` - Calcolo consumi
+  - **Modello Dati**:
+    ```sql
+    meter_readings (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id),
+      meter_type VARCHAR(20) NOT NULL,  -- 'gas', 'electricity', 'water'
+      reading_value DECIMAL(12,3) NOT NULL,
+      reading_date DATE NOT NULL,
+      reading_time TIME,
+      source VARCHAR(20) NOT NULL,      -- 'manual', 'ocr'
+      image_path VARCHAR(500),
+      ocr_confidence DECIMAL(3,2),
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP,
+      UNIQUE(user_id, meter_type, reading_date)
+    );
+    ```
+  - **Opzioni OCR**:
+    - Tesseract (self-hosted, gratuito)
+    - Google Cloud Vision (più preciso, ~€1.50/1000 immagini)
+    - EasyOCR (Python, buono per cifre)
+  - **Effort stimato**: 12-16h
+  - **Priorità**: Media-Alta
+
 ### Audit Log
 
 - [ ] **[FEAT-005]** Sistema Audit Log Completo
@@ -344,10 +398,10 @@
 | ⚠️ High | 6 | 1/6 completed |
 | 🟡 Medium | 15 | **6/15 completed** |
 | 🟢 Low | 8 | 0/8 completed |
-| 🚀 New Features | 6 | 0/6 completed |
+| 🚀 New Features | 7 | 0/7 completed |
 | 📋 Pages | 5 | 4/5 completed |
 | 🔧 Infra | 6 | 0/6 completed |
-| **TOTAL** | **53** | **18/53** |
+| **TOTAL** | **54** | **18/54** |
 
 ---
 
@@ -362,3 +416,4 @@
 - **2025-12-19**: Definita strategia caching (FEAT-006) per persistenza dati storici
 - **2025-12-19**: Fix priorità dati storici vs realtime per energia giornaliera (usa TotalDecimal)
 - **2025-12-19**: Deploy HTTPS con Traefik + Let's Encrypt completato
+- **2025-12-19**: Aggiunta FEAT-007 - Lettura Contatore Gas con OCR

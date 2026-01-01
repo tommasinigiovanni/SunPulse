@@ -765,6 +765,98 @@ GET  /api/v1/audit/stats         # Statistiche (azioni per tipo, per utente)
 
 ---
 
+### ⛽ Lettura Contatore Gas [FEAT-007]
+
+**Obiettivo:** Permettere agli utenti di registrare le letture del contatore gas sia manualmente che tramite riconoscimento automatico da foto (OCR).
+
+**Modalità di Input:**
+
+| Modalità | Descrizione | Vantaggi |
+|----------|-------------|----------|
+| **Manuale** | Form con valore, data, note | Semplice, affidabile |
+| **OCR da Foto** | Upload foto → riconoscimento cifre | Veloce, meno errori trascrizione |
+
+**Funzionalità:**
+- Inserimento lettura manuale con validazione
+- Upload foto contatore con preview
+- OCR automatico per riconoscere le cifre
+- Conferma/correzione valore rilevato
+- Storico letture con tabella paginata
+- Grafico consumo nel tempo
+- Calcolo consumo tra due letture
+- Alert se lettura < precedente (errore)
+- Export CSV delle letture
+
+**Flusso OCR:**
+
+```
+┌────────────────┐     ┌────────────────┐     ┌────────────────┐
+│  Upload Foto   │────▶│ Pre-processing │────▶│   OCR Engine   │
+│  (JPEG/PNG)    │     │ • Crop         │     │  (Tesseract/   │
+└────────────────┘     │ • Threshold    │     │   EasyOCR)     │
+                       │ • Contrast     │     └───────┬────────┘
+                       └────────────────┘             │
+                                                      ▼
+┌────────────────┐     ┌────────────────┐     ┌────────────────┐
+│    Salvato     │◀────│   Conferma     │◀────│ Valore Rilevato│
+│   in Database  │     │   Utente       │     │   + Confidence │
+└────────────────┘     └────────────────┘     └────────────────┘
+```
+
+**Modello Dati:**
+
+```sql
+meter_readings (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  meter_type VARCHAR(20) NOT NULL,     -- 'gas', 'electricity', 'water'
+  reading_value DECIMAL(12,3) NOT NULL, -- Es: 12345.678 m³
+  reading_date DATE NOT NULL,
+  reading_time TIME,
+  source VARCHAR(20) NOT NULL,          -- 'manual', 'ocr'
+  image_path VARCHAR(500),              -- Path immagine originale
+  ocr_confidence DECIMAL(3,2),          -- 0.00 - 1.00
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP,
+  
+  UNIQUE(user_id, meter_type, reading_date)
+);
+```
+
+**API Endpoints:**
+
+```
+POST /api/v1/meters/readings           # Nuova lettura manuale
+POST /api/v1/meters/readings/ocr       # Upload foto e OCR
+GET  /api/v1/meters/readings           # Lista letture (con filtri)
+GET  /api/v1/meters/readings/{id}      # Dettaglio singola lettura
+PUT  /api/v1/meters/readings/{id}      # Modifica lettura
+DELETE /api/v1/meters/readings/{id}    # Elimina lettura
+GET  /api/v1/meters/consumption        # Calcolo consumi per periodo
+GET  /api/v1/meters/export             # Export CSV
+```
+
+**Opzioni OCR:**
+
+| Servizio | Pro | Contro | Costo |
+|----------|-----|--------|-------|
+| **Tesseract** | Gratuito, self-hosted, privacy | Setup complesso | €0 |
+| **EasyOCR** | Python native, buono per cifre | Pesante (GPU) | €0 |
+| **Google Vision** | Molto preciso | Vendor lock-in | ~€1.50/1000 |
+| **AWS Textract** | Buono per form | Vendor lock-in | ~€1.50/1000 |
+
+**Effort Stimato:** 12-16 ore
+
+**Priorità:** Media-Alta
+
+**Dipendenze:**
+- Storage per immagini (local filesystem o S3)
+- Libreria OCR (pytesseract o easyocr)
+- Frontend: componente upload con crop
+
+---
+
 ### 🧾 Scansione Bollette [FEAT-001]
 
 **Obiettivo:** Permettere agli utenti di caricare foto/PDF delle bollette elettriche ed estrarre automaticamente i dati per confrontarli con la produzione fotovoltaica.
