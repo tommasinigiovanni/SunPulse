@@ -274,13 +274,13 @@ export const DeviceList: React.FC<DeviceListProps> = ({
         ) : (
           <Row gutter={[16, 16]}>
             {filteredDevices.map(device => (
-              <Col 
+              <Col
                 key={device.id}
                 xs={24}
                 sm={viewMode === 'grid' ? 12 : 24}
                 md={viewMode === 'grid' ? 8 : 24}
                 lg={viewMode === 'grid' ? 6 : 24}
-                xl={viewMode === 'grid' ? 4 : 24}
+                xl={viewMode === 'grid' ? 6 : 24}
               >
                 <DeviceCard
                   device={device}

@@ -248,6 +248,18 @@ export const PowerChart: React.FC<PowerChartProps> = ({
     slider: {
       start: sliderRangeRef.current[0],
       end: sliderRangeRef.current[1],
+      handlerStyle: {
+        width: 16,
+        height: 16,
+        borderRadius: '50%',
+        cursor: 'pointer',
+        border: '2px solid #1890ff',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+      },
+      trackStyle: {
+        height: 6,
+        borderRadius: 3,
+      },
     },
     onReady: (plot: any) => {
       plotRef.current = plot;

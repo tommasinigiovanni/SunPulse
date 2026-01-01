@@ -135,15 +135,18 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onCollapse }) => {
 
       {/* Right Side */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        {/* Quick Stats */}
+        {/* Quick Stats - nascosti su mobile */}
         {summary && (
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 24,
-            marginRight: 16,
-            padding: '4px 0'
-          }}>
+          <div
+            className="header-quick-stats"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 24,
+              marginRight: 16,
+              padding: '4px 0'
+            }}
+          >
             <div style={{ 
               display: 'flex', 
               flexDirection: 'column', 

@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Row, Col, Card, Statistic, Typography, Space, Divider, Progress, Select } from 'antd';
-import { 
-  ThunderboltOutlined, 
-  DollarOutlined, 
+import { Row, Col, Card, Statistic, Typography, Space, Divider, Progress, Select, Skeleton, Button, Tooltip } from 'antd';
+import {
+  ThunderboltOutlined,
+  DollarOutlined,
   RiseOutlined,
   FallOutlined,
   CheckCircleOutlined,
@@ -10,11 +10,14 @@ import {
   HomeOutlined,
   CloudOutlined,
   BulbOutlined,
-  ControlOutlined
+  ControlOutlined,
+  ReloadOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons';
 import { PowerChart } from '@/components/charts/PowerChart';
 import { useRealTimeData } from '@/hooks/useRealTimeData';
 import { useDevices } from '@/hooks/useDevices';
+import { useEnergyStats } from '@/hooks/useEnergyStats';
 import { formatPower, formatEnergy, formatCurrency, formatCO2 } from '@/utils/formatters';
 
 const { Title, Text } = Typography;
@@ -22,8 +25,28 @@ const { Title, Text } = Typography;
 export const Dashboard: React.FC = () => {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
   
-  const { data: realTimeData, summary, isLoading: realTimeLoading } = useRealTimeData();
-  const { devices, stats, energyStats } = useDevices();
+  const { data: realTimeData, summary, isLoading: realTimeLoading, refreshData, lastUpdate } = useRealTimeData();
+  const { devices, stats, energyStats, refetch: refetchDevices } = useDevices();
+  const { stats: energyStatsReal, isLoading: energyStatsLoading } = useEnergyStats();
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([refreshData(), refetchDevices()]);
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const formatLastUpdate = (timestamp: string | undefined) => {
+    if (!timestamp) return 'Mai';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffSeconds < 60) return `${diffSeconds}s fa`;
+    if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}m fa`;
+    return date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  };
   
   // Opzioni per il selettore dispositivo
   const deviceOptions = useMemo(() => {
@@ -50,8 +73,8 @@ export const Dashboard: React.FC = () => {
     return options;
   }, [realTimeData, devices]);
 
-  // Calcola metriche dashboard
-  const dailyEnergy = summary?.total_energy_today || energyStats.daily_energy || 0;
+  // Calcola metriche dashboard con dati reali
+  const dailyEnergy = energyStatsReal.today || summary?.total_energy_today || energyStats.daily_energy || 0;
   const dashboardMetrics = {
     currentPower: summary?.total_power || 0,
     dailyEnergy: dailyEnergy,
@@ -59,7 +82,9 @@ export const Dashboard: React.FC = () => {
     yearlyEnergy: dailyEnergy * 365, // Stima annuale
     co2Saved: dailyEnergy * 0.4, // 0.4 kg CO2 per kWh
     moneySaved: dailyEnergy * 0.25, // €0.25 per kWh
-    efficiency: 85.5, // Valore di esempio
+    efficiency: energyStatsReal.efficiency, // Efficienza reale calcolata
+    variationFromYesterday: energyStatsReal.variationFromYesterday,
+    variationFromLastWeek: energyStatsReal.variationFromLastWeek,
   };
 
   return (
@@ -69,95 +94,166 @@ export const Dashboard: React.FC = () => {
           <Title level={2} style={{ margin: 0, color: '#1890ff' }}>
             Dashboard Fotovoltaico
           </Title>
-          <Text type="secondary">
-            Monitoraggio in tempo reale del sistema di produzione energia
-          </Text>
+          <Space>
+            <Text type="secondary">
+              Monitoraggio in tempo reale del sistema di produzione energia
+            </Text>
+            <Tooltip title={`Ultimo aggiornamento: ${formatLastUpdate(lastUpdate)}`}>
+              <Space size={4} style={{ color: '#999', fontSize: 12 }}>
+                <ClockCircleOutlined />
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {formatLastUpdate(lastUpdate)}
+                </Text>
+              </Space>
+            </Tooltip>
+          </Space>
         </div>
-        
-        {/* Selettore Dispositivo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <ControlOutlined style={{ color: '#1890ff' }} />
-          <Select
-            value={selectedDeviceId || 'all'}
-            onChange={(value) => setSelectedDeviceId(value === 'all' ? undefined : value)}
-            style={{ minWidth: 220 }}
-            options={deviceOptions}
-            placeholder="Seleziona dispositivo"
-          />
-        </div>
+
+        {/* Controlli */}
+        <Space size={8} wrap>
+          <Tooltip title="Aggiorna dati">
+            <Button
+              icon={<ReloadOutlined spin={isRefreshing} />}
+              onClick={handleRefresh}
+              loading={isRefreshing}
+              type="default"
+            >
+              Aggiorna
+            </Button>
+          </Tooltip>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ControlOutlined style={{ color: '#1890ff' }} />
+            <Select
+              value={selectedDeviceId || 'all'}
+              onChange={(value) => setSelectedDeviceId(value === 'all' ? undefined : value)}
+              style={{ minWidth: 220 }}
+              options={deviceOptions}
+              placeholder="Seleziona dispositivo"
+            />
+          </div>
+        </Space>
       </div>
 
       {/* KPI Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} md={6}>
           <Card>
-            <Statistic
-              title="Produzione Attuale"
-              value={dashboardMetrics.currentPower}
-              formatter={(value) => formatPower(Number(value))}
-              prefix={<ThunderboltOutlined style={{ color: '#1890ff' }} />}
-              valueStyle={{ color: '#1890ff', fontSize: 28 }}
-              suffix={
-                <Space>
-                  <RiseOutlined style={{ color: '#52c41a', fontSize: 14 }} />
-                  <Text style={{ fontSize: 12, color: '#52c41a' }}>+5.2%</Text>
-                </Space>
-              }
-            />
+            {(realTimeLoading || energyStatsLoading) ? (
+              <Skeleton active paragraph={{ rows: 1 }} />
+            ) : (
+              <Statistic
+                title="Produzione Attuale"
+                value={dashboardMetrics.currentPower}
+                formatter={(value) => formatPower(Number(value))}
+                prefix={<ThunderboltOutlined style={{ color: '#1890ff' }} />}
+                valueStyle={{ color: '#1890ff', fontSize: 28 }}
+                suffix={
+                  dashboardMetrics.variationFromYesterday !== 0 && (
+                    <Space>
+                      {dashboardMetrics.variationFromYesterday > 0 ? (
+                        <RiseOutlined style={{ color: '#52c41a', fontSize: 14 }} />
+                      ) : (
+                        <FallOutlined style={{ color: '#ff4d4f', fontSize: 14 }} />
+                      )}
+                      <Text style={{ fontSize: 12, color: dashboardMetrics.variationFromYesterday > 0 ? '#52c41a' : '#ff4d4f' }}>
+                        {dashboardMetrics.variationFromYesterday > 0 ? '+' : ''}{dashboardMetrics.variationFromYesterday.toFixed(1)}%
+                      </Text>
+                    </Space>
+                  )
+                }
+              />
+            )}
           </Card>
         </Col>
-        
+
         <Col xs={24} sm={12} md={6}>
           <Card>
-            <Statistic
-              title="Energia Prodotta Oggi"
-              value={dashboardMetrics.dailyEnergy}
-              formatter={(value) => formatEnergy(Number(value) * 1000)}
-              prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-              valueStyle={{ color: '#52c41a', fontSize: 28 }}
-              suffix={
-                <Space>
-                  <RiseOutlined style={{ color: '#52c41a', fontSize: 14 }} />
-                  <Text style={{ fontSize: 12, color: '#52c41a' }}>+12%</Text>
-                </Space>
-              }
-            />
+            {(realTimeLoading || energyStatsLoading) ? (
+              <Skeleton active paragraph={{ rows: 1 }} />
+            ) : (
+              <Statistic
+                title="Energia Prodotta Oggi"
+                value={dashboardMetrics.dailyEnergy}
+                formatter={(value) => formatEnergy(Number(value) * 1000)}
+                prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                valueStyle={{ color: '#52c41a', fontSize: 28 }}
+                suffix={
+                  dashboardMetrics.variationFromYesterday !== 0 && (
+                    <Space>
+                      {dashboardMetrics.variationFromYesterday > 0 ? (
+                        <RiseOutlined style={{ color: '#52c41a', fontSize: 14 }} />
+                      ) : (
+                        <FallOutlined style={{ color: '#ff4d4f', fontSize: 14 }} />
+                      )}
+                      <Text style={{ fontSize: 12, color: dashboardMetrics.variationFromYesterday > 0 ? '#52c41a' : '#ff4d4f' }}>
+                        {dashboardMetrics.variationFromYesterday > 0 ? '+' : ''}{dashboardMetrics.variationFromYesterday.toFixed(1)}%
+                      </Text>
+                    </Space>
+                  )
+                }
+              />
+            )}
           </Card>
         </Col>
-        
+
         <Col xs={24} sm={12} md={6}>
           <Card>
-            <Statistic
+            {(realTimeLoading || energyStatsLoading) ? (
+              <Skeleton active paragraph={{ rows: 1 }} />
+            ) : (
+              <Statistic
               title="Risparmio Oggi"
               value={dashboardMetrics.moneySaved}
               formatter={(value) => formatCurrency(Number(value))}
               prefix={<DollarOutlined style={{ color: '#faad14' }} />}
               valueStyle={{ color: '#faad14', fontSize: 28 }}
               suffix={
-                <Space>
-                  <RiseOutlined style={{ color: '#52c41a', fontSize: 14 }} />
-                  <Text style={{ fontSize: 12, color: '#52c41a' }}>+8%</Text>
-                </Space>
+                dashboardMetrics.variationFromYesterday !== 0 && (
+                  <Space>
+                    {dashboardMetrics.variationFromYesterday > 0 ? (
+                      <RiseOutlined style={{ color: '#52c41a', fontSize: 14 }} />
+                    ) : (
+                      <FallOutlined style={{ color: '#ff4d4f', fontSize: 14 }} />
+                    )}
+                    <Text style={{ fontSize: 12, color: dashboardMetrics.variationFromYesterday > 0 ? '#52c41a' : '#ff4d4f' }}>
+                      {dashboardMetrics.variationFromYesterday > 0 ? '+' : ''}{dashboardMetrics.variationFromYesterday.toFixed(1)}%
+                    </Text>
+                  </Space>
+                )
               }
-            />
+              />
+            )}
           </Card>
         </Col>
-        
+
         <Col xs={24} sm={12} md={6}>
           <Card>
-            <Statistic
+            {(realTimeLoading || energyStatsLoading) ? (
+              <Skeleton active paragraph={{ rows: 1 }} />
+            ) : (
+              <Statistic
               title="CO₂ Risparmiata"
               value={dashboardMetrics.co2Saved}
               formatter={(value) => formatCO2(Number(value))}
               prefix={<StarOutlined style={{ color: '#52c41a' }} />}
               valueStyle={{ color: '#52c41a', fontSize: 28 }}
               suffix={
-                <Space>
-                  <RiseOutlined style={{ color: '#52c41a', fontSize: 14 }} />
-                  <Text style={{ fontSize: 12, color: '#52c41a' }}>+15%</Text>
-                </Space>
+                dashboardMetrics.variationFromYesterday !== 0 && (
+                  <Space>
+                    {dashboardMetrics.variationFromYesterday > 0 ? (
+                      <RiseOutlined style={{ color: '#52c41a', fontSize: 14 }} />
+                    ) : (
+                      <FallOutlined style={{ color: '#ff4d4f', fontSize: 14 }} />
+                    )}
+                    <Text style={{ fontSize: 12, color: dashboardMetrics.variationFromYesterday > 0 ? '#52c41a' : '#ff4d4f' }}>
+                      {dashboardMetrics.variationFromYesterday > 0 ? '+' : ''}{dashboardMetrics.variationFromYesterday.toFixed(1)}%
+                    </Text>
+                  </Space>
+                )
               }
-            />
+              />
+            )}
           </Card>
         </Col>
       </Row>

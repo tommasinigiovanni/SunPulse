@@ -142,6 +142,11 @@ body {
   .mobile-hidden {
     display: none;
   }
+
+  /* Nasconde header quick stats su mobile */
+  .header-quick-stats {
+    display: none !important;
+  }
 }
 
 @media (max-width: 576px) {
@@ -353,17 +358,53 @@ body {
   border-left: 4px solid #13c2c2;
 }
 
+/* Touch-friendly slider for mobile */
+@media (max-width: 768px) {
+  .g2-tooltip {
+    font-size: 14px;
+    padding: 12px;
+  }
+
+  /* Ingrandisci gli handle dello slider su mobile */
+  .g2-slider-handle {
+    width: 20px !important;
+    height: 20px !important;
+    border-width: 3px !important;
+    cursor: pointer;
+    touch-action: none;
+  }
+
+  /* Aumenta l'area touch dello slider */
+  .g2-slider {
+    height: 32px !important;
+    cursor: pointer;
+  }
+
+  .g2-slider-track {
+    height: 8px !important;
+  }
+
+  /* Migliora interazione touch per chart */
+  .g2-chart-tooltip {
+    pointer-events: none;
+  }
+
+  canvas {
+    touch-action: pan-y pinch-zoom;
+  }
+}
+
 /* Print styles */
 @media print {
   .no-print {
     display: none !important;
   }
-  
+
   .ant-layout-header,
   .ant-layout-sider {
     display: none !important;
   }
-  
+
   .ant-layout-content {
     margin: 0 !important;
     padding: 0 !important;
