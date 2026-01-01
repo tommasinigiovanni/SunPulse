@@ -139,4 +139,81 @@ export const apiClient = {
     const response = await axiosInstance.get('/health');
     return response.data;
   },
-}; 
+  
+  // Settings
+  async getSettings() {
+    const response = await axiosInstance.get('/settings');
+    return response.data;
+  },
+  
+  async updateSettings(settings: UserSettingsUpdate) {
+    const response = await axiosInstance.put('/settings', settings);
+    return response.data;
+  },
+  
+  async getSettingsDevices() {
+    const response = await axiosInstance.get('/settings/devices');
+    return response.data;
+  },
+  
+  async getApiStatus() {
+    const response = await axiosInstance.get('/settings/api-status');
+    return response.data;
+  },
+};
+
+// Types for Settings
+export interface UserSettings {
+  user_id: string;
+  system_name: string;
+  language: string;
+  timezone: string;
+  currency: string;
+  energy_price: number;
+  sell_price: number;
+  notification_email: string | null;
+  notify_critical_alarms: boolean;
+  notify_warnings: boolean;
+  notify_daily_report: boolean;
+  notify_weekly_report: boolean;
+  battery_low_threshold: number;
+  battery_critical_threshold: number;
+  realtime_interval: number;
+  historical_interval: number;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface UserSettingsUpdate {
+  system_name?: string;
+  language?: string;
+  timezone?: string;
+  currency?: string;
+  energy_price?: number;
+  sell_price?: number;
+  notification_email?: string | null;
+  notify_critical_alarms?: boolean;
+  notify_warnings?: boolean;
+  notify_daily_report?: boolean;
+  notify_weekly_report?: boolean;
+  battery_low_threshold?: number;
+  battery_critical_threshold?: number;
+  realtime_interval?: number;
+  historical_interval?: number;
+}
+
+export interface DeviceInfo {
+  thing_key: string;
+  name: string;
+  device_type: string;
+  status: string;
+  last_update: string | null;
+}
+
+export interface ApiStatus {
+  endpoint: string;
+  connected: boolean;
+  last_sync: string | null;
+  client_code_configured: boolean;
+  error: string | null;
+} 

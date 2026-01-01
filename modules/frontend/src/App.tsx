@@ -16,7 +16,7 @@ import {
 import routerBindings from "@refinedev/react-router-v6";
 
 // Providers
-import { AuthProvider } from './providers/AuthProvider';
+import { AuthProvider, useAuth0 } from './providers/AuthProvider';
 import { dataProvider } from './providers/DataProvider';
 
 // Components
@@ -124,15 +124,22 @@ const AuthenticatedLayout: React.FC = () => {
 
 // Componente per setup Auth token
 const AuthTokenSetup: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { getAuthHeaders } = useAuth();
+  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
   useEffect(() => {
     // Configura il getter del token per axios
+    // Usa direttamente getAccessTokenSilently per evitare problemi con isAuthenticated
     setAuthTokenGetter(async () => {
-      const headers = await getAuthHeaders();
-      return headers.Authorization?.replace('Bearer ', '') || null;
+      try {
+        const token = await getAccessTokenSilently();
+        return token || null;
+      } catch (error) {
+        // Token non disponibile (utente non autenticato o sessione scaduta)
+        console.debug('Token non disponibile:', error);
+        return null;
+      }
     });
-  }, [getAuthHeaders]);
+  }, [getAccessTokenSilently, isAuthenticated]);
 
   return <>{children}</>;
 };

@@ -195,7 +195,10 @@ export const useRealTimeData = (options: UseRealTimeDataOptions = {}) => {
   }, [deviceIds]);
 
   // Combina dati WebSocket e polling
-  const combinedData = realTimeData.length > 0 ? realTimeData : pollingData?.devices || [];
+  // FIX: Controllo Array.isArray per evitare errore forEach
+  const combinedData = realTimeData.length > 0 
+    ? realTimeData 
+    : (Array.isArray(pollingData?.devices) ? pollingData.devices : []);
   
   // Usa summary dall'API se disponibile, altrimenti calcolalo (con memoization per evitare loop)
   const summary = useMemo(() => {

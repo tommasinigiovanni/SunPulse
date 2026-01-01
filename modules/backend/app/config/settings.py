@@ -60,6 +60,11 @@ class Settings(BaseSettings):
     AUTH0_DOMAIN: str = Field(..., env="AUTH0_DOMAIN")
     AUTH0_CLIENT_ID: str = Field(..., env="AUTH0_CLIENT_ID")
     AUTH0_CLIENT_SECRET: str = Field(..., env="AUTH0_CLIENT_SECRET")
+    AUTH0_API_AUDIENCE: str = Field(
+        default="https://sunpulse-api",
+        env="AUTH0_API_AUDIENCE",
+        description="Auth0 API Identifier/Audience for JWT validation"
+    )
     
     # Email (Resend)
     resend_api_key: Optional[str] = Field(None, env="RESEND_API_KEY")

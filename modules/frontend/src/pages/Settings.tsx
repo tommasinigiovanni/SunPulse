@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { 
   Row, 
   Col, 
@@ -12,38 +12,95 @@ import {
   Space, 
   Divider,
   InputNumber,
-  message,
   Tabs,
   Descriptions,
-  Tag
+  Tag,
+  Spin,
+  Alert,
+  Skeleton
 } from 'antd';
 import { 
   SettingOutlined,
-  UserOutlined,
   BellOutlined,
   ThunderboltOutlined,
   SaveOutlined,
   ApiOutlined,
   DatabaseOutlined,
-  SecurityScanOutlined
+  SecurityScanOutlined,
+  ReloadOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  LoadingOutlined
 } from '@ant-design/icons';
 
-const { Title, Text, Paragraph } = Typography;
+import { useSettings, useSettingsDevices, useApiStatus } from '../hooks/useSettings';
+import { UserSettingsUpdate } from '../utils/api';
+
+const { Title, Text } = Typography;
 const { Option } = Select;
 
 export const Settings: React.FC = () => {
-  const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
+  
+  // Hooks for data
+  const { settings, isLoading, isError, updateSettings, isUpdating } = useSettings();
+  const { devices, isLoading: devicesLoading, refetch: refetchDevices } = useSettingsDevices();
+  const { status: apiStatus, isLoading: apiLoading, refetch: refetchApiStatus } = useApiStatus();
+
+  // Populate form when settings load
+  useEffect(() => {
+    if (settings) {
+      form.setFieldsValue({
+        system_name: settings.system_name,
+        language: settings.language,
+        timezone: settings.timezone,
+        currency: settings.currency,
+        energy_price: settings.energy_price,
+        sell_price: settings.sell_price,
+        notification_email: settings.notification_email,
+        notify_critical_alarms: settings.notify_critical_alarms,
+        notify_warnings: settings.notify_warnings,
+        notify_daily_report: settings.notify_daily_report,
+        notify_weekly_report: settings.notify_weekly_report,
+        battery_low_threshold: settings.battery_low_threshold,
+        battery_critical_threshold: settings.battery_critical_threshold,
+        realtime_interval: settings.realtime_interval,
+        historical_interval: settings.historical_interval,
+      });
+    }
+  }, [settings, form]);
 
   const handleSave = async () => {
     try {
-      setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simula salvataggio
-      message.success('Impostazioni salvate con successo!');
+      const values = await form.validateFields();
+      const updateData: UserSettingsUpdate = {
+        system_name: values.system_name,
+        language: values.language,
+        timezone: values.timezone,
+        currency: values.currency,
+        energy_price: values.energy_price,
+        sell_price: values.sell_price,
+        notification_email: values.notification_email || null,
+        notify_critical_alarms: values.notify_critical_alarms,
+        notify_warnings: values.notify_warnings,
+        notify_daily_report: values.notify_daily_report,
+        notify_weekly_report: values.notify_weekly_report,
+        battery_low_threshold: values.battery_low_threshold,
+        battery_critical_threshold: values.battery_critical_threshold,
+        realtime_interval: values.realtime_interval,
+        historical_interval: values.historical_interval,
+      };
+      await updateSettings(updateData);
     } catch (error) {
-      message.error('Errore nel salvataggio delle impostazioni');
-    } finally {
-      setLoading(false);
+      console.error('Validation failed:', error);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'online': return 'green';
+      case 'offline': return 'red';
+      default: return 'orange';
     }
   };
 
@@ -56,19 +113,10 @@ export const Settings: React.FC = () => {
           Generale
         </span>
       ),
-      children: (
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={{
-            system_name: 'Casa Tommasini',
-            language: 'it',
-            timezone: 'Europe/Rome',
-            energy_price: 0.25,
-            sell_price: 0.10,
-            currency: 'EUR',
-          }}
-        >
+      children: isLoading ? (
+        <Skeleton active paragraph={{ rows: 6 }} />
+      ) : (
+        <Form form={form} layout="vertical">
           <Row gutter={24}>
             <Col xs={24} md={12}>
               <Form.Item label="Nome Impianto" name="system_name">
@@ -88,6 +136,7 @@ export const Settings: React.FC = () => {
                 <Select>
                   <Option value="Europe/Rome">Europe/Rome (UTC+1)</Option>
                   <Option value="Europe/London">Europe/London (UTC+0)</Option>
+                  <Option value="America/New_York">America/New_York (UTC-5)</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -96,6 +145,7 @@ export const Settings: React.FC = () => {
                 <Select>
                   <Option value="EUR">Euro (€)</Option>
                   <Option value="USD">US Dollar ($)</Option>
+                  <Option value="GBP">British Pound (£)</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -148,28 +198,38 @@ export const Settings: React.FC = () => {
           Notifiche
         </span>
       ),
-      children: (
-        <Form layout="vertical">
+      children: isLoading ? (
+        <Skeleton active paragraph={{ rows: 6 }} />
+      ) : (
+        <Form form={form} layout="vertical">
           <Card title="Notifiche Email" size="small" style={{ marginBottom: 16 }}>
             <Form.Item label="Email" name="notification_email">
-              <Input placeholder="email@esempio.com" />
+              <Input placeholder="email@esempio.com" type="email" />
             </Form.Item>
             <Space direction="vertical" style={{ width: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>Allarmi Critici</Text>
-                <Switch defaultChecked />
+                <Form.Item name="notify_critical_alarms" valuePropName="checked" noStyle>
+                  <Switch />
+                </Form.Item>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>Avvisi</Text>
-                <Switch defaultChecked />
+                <Form.Item name="notify_warnings" valuePropName="checked" noStyle>
+                  <Switch />
+                </Form.Item>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>Report Giornaliero</Text>
-                <Switch />
+                <Form.Item name="notify_daily_report" valuePropName="checked" noStyle>
+                  <Switch />
+                </Form.Item>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>Report Settimanale</Text>
-                <Switch defaultChecked />
+                <Form.Item name="notify_weekly_report" valuePropName="checked" noStyle>
+                  <Switch />
+                </Form.Item>
               </div>
             </Space>
           </Card>
@@ -178,12 +238,12 @@ export const Settings: React.FC = () => {
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item label="Batteria Bassa (%)" name="battery_low_threshold">
-                  <InputNumber min={5} max={50} defaultValue={20} style={{ width: '100%' }} />
+                  <InputNumber min={5} max={50} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item label="Batteria Critica (%)" name="battery_critical_threshold">
-                  <InputNumber min={1} max={20} defaultValue={10} style={{ width: '100%' }} />
+                  <InputNumber min={1} max={20} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
             </Row>
@@ -201,15 +261,48 @@ export const Settings: React.FC = () => {
       ),
       children: (
         <div>
-          <Card title="Dispositivi Configurati" size="small" style={{ marginBottom: 16 }}>
-            <Descriptions column={2} size="small">
-              <Descriptions.Item label="Thing Key">ZE1ES330J9E558</Descriptions.Item>
-              <Descriptions.Item label="Tipo">Inverter Ibrido</Descriptions.Item>
-              <Descriptions.Item label="Stato">
-                <Tag color="green">Online</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Ultimo Aggiornamento">Ora</Descriptions.Item>
-            </Descriptions>
+          <Card 
+            title="Dispositivi Configurati" 
+            size="small" 
+            style={{ marginBottom: 16 }}
+            extra={
+              <Button 
+                icon={<ReloadOutlined />} 
+                size="small" 
+                onClick={() => refetchDevices()}
+                loading={devicesLoading}
+              >
+                Aggiorna
+              </Button>
+            }
+          >
+            {devicesLoading ? (
+              <Skeleton active paragraph={{ rows: 2 }} />
+            ) : devices.length === 0 ? (
+              <Alert message="Nessun dispositivo configurato" type="info" />
+            ) : (
+              <Space direction="vertical" style={{ width: '100%' }}>
+                {devices.map((device) => (
+                  <Card key={device.thing_key} size="small" style={{ marginBottom: 8 }}>
+                    <Descriptions column={2} size="small">
+                      <Descriptions.Item label="Thing Key">
+                        <Text code>{device.thing_key}</Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Tipo">{device.device_type}</Descriptions.Item>
+                      <Descriptions.Item label="Stato">
+                        <Tag color={getStatusColor(device.status)}>
+                          {device.status === 'online' ? 'Online' : 
+                           device.status === 'offline' ? 'Offline' : 'Sconosciuto'}
+                        </Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Ultimo Aggiornamento">
+                        {device.last_update || 'N/A'}
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </Card>
+                ))}
+              </Space>
+            )}
           </Card>
 
           <Card title="Aggiungi Dispositivo" size="small">
@@ -242,34 +335,67 @@ export const Settings: React.FC = () => {
       ),
       children: (
         <div>
-          <Card title="Configurazione ZCS API" size="small" style={{ marginBottom: 16 }}>
-            <Descriptions column={1} size="small">
-              <Descriptions.Item label="Endpoint">
-                https://third.zcsazzurroportal.com:19003/
-              </Descriptions.Item>
-              <Descriptions.Item label="Client Code">
-                <Text code>••••••••</Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="Stato Connessione">
-                <Tag color="green">Connesso</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Ultimo Sync">
-                Pochi secondi fa
-              </Descriptions.Item>
-            </Descriptions>
+          <Card 
+            title="Configurazione ZCS API" 
+            size="small" 
+            style={{ marginBottom: 16 }}
+            extra={
+              <Button 
+                icon={<ReloadOutlined />} 
+                size="small" 
+                onClick={() => refetchApiStatus()}
+                loading={apiLoading}
+              >
+                Verifica
+              </Button>
+            }
+          >
+            {apiLoading ? (
+              <Skeleton active paragraph={{ rows: 3 }} />
+            ) : apiStatus ? (
+              <Descriptions column={1} size="small">
+                <Descriptions.Item label="Endpoint">
+                  <Text code>{apiStatus.endpoint}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Client Code">
+                  {apiStatus.client_code_configured ? (
+                    <Tag color="green"><CheckCircleOutlined /> Configurato</Tag>
+                  ) : (
+                    <Tag color="red"><CloseCircleOutlined /> Non configurato</Tag>
+                  )}
+                </Descriptions.Item>
+                <Descriptions.Item label="Stato Connessione">
+                  {apiStatus.connected ? (
+                    <Tag color="green"><CheckCircleOutlined /> Connesso</Tag>
+                  ) : (
+                    <Tag color="red"><CloseCircleOutlined /> Disconnesso</Tag>
+                  )}
+                </Descriptions.Item>
+                <Descriptions.Item label="Ultimo Sync">
+                  {apiStatus.last_sync || 'Mai'}
+                </Descriptions.Item>
+                {apiStatus.error && (
+                  <Descriptions.Item label="Errore">
+                    <Text type="danger">{apiStatus.error}</Text>
+                  </Descriptions.Item>
+                )}
+              </Descriptions>
+            ) : (
+              <Alert message="Impossibile recuperare lo stato API" type="warning" />
+            )}
           </Card>
 
           <Card title="Intervalli di Aggiornamento" size="small">
-            <Form layout="vertical">
+            <Form form={form} layout="vertical">
               <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item label="Dati Real-time (secondi)">
-                    <InputNumber min={10} max={300} defaultValue={60} style={{ width: '100%' }} />
+                  <Form.Item label="Dati Real-time (secondi)" name="realtime_interval">
+                    <InputNumber min={10} max={300} style={{ width: '100%' }} />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item label="Dati Storici (minuti)">
-                    <InputNumber min={5} max={60} defaultValue={15} style={{ width: '100%' }} />
+                  <Form.Item label="Dati Storici (minuti)" name="historical_interval">
+                    <InputNumber min={5} max={60} style={{ width: '100%' }} />
                   </Form.Item>
                 </Col>
               </Row>
@@ -291,8 +417,8 @@ export const Settings: React.FC = () => {
           <Card title="Informazioni Sistema" size="small" style={{ marginBottom: 16 }}>
             <Descriptions column={2} size="small">
               <Descriptions.Item label="Versione">v2.0.0</Descriptions.Item>
-              <Descriptions.Item label="Build">2025-12-12</Descriptions.Item>
-              <Descriptions.Item label="Backend">FastAPI</Descriptions.Item>
+              <Descriptions.Item label="Build">2025-01-01</Descriptions.Item>
+              <Descriptions.Item label="Backend">FastAPI + Auth0</Descriptions.Item>
               <Descriptions.Item label="Frontend">React + Refine</Descriptions.Item>
               <Descriptions.Item label="Database">PostgreSQL + InfluxDB</Descriptions.Item>
               <Descriptions.Item label="Cache">Redis</Descriptions.Item>
@@ -317,6 +443,19 @@ export const Settings: React.FC = () => {
     },
   ];
 
+  if (isError) {
+    return (
+      <div style={{ padding: 24 }}>
+        <Alert
+          message="Errore"
+          description="Impossibile caricare le impostazioni. Riprova più tardi."
+          type="error"
+          showIcon
+        />
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: 24, backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
       {/* Header */}
@@ -332,9 +471,10 @@ export const Settings: React.FC = () => {
         
         <Button 
           type="primary" 
-          icon={<SaveOutlined />}
-          loading={loading}
+          icon={isUpdating ? <LoadingOutlined /> : <SaveOutlined />}
+          loading={isUpdating}
           onClick={handleSave}
+          disabled={isLoading}
         >
           Salva Modifiche
         </Button>

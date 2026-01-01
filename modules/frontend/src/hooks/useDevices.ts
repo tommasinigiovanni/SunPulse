@@ -41,7 +41,8 @@ export const useDevices = (options: UseDevicesOptions = {}) => {
     sorters: sorters || [{ field: "name", order: "asc" }],
   });
 
-  const devices = deviceList?.data || [];
+  // FIX: Controllo Array.isArray per evitare errore forEach
+  const devices = Array.isArray(deviceList?.data) ? deviceList.data : [];
   const total = deviceList?.total || 0;
 
   // Statistiche dispositivi

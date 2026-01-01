@@ -53,21 +53,27 @@ export const Dashboard: React.FC = () => {
     const options = [{ value: 'all', label: '🏠 Tutti i dispositivi' }];
     
     // Aggiungi dispositivi da realTimeData (hanno più info)
-    realTimeData?.forEach((device: any) => {
-      options.push({
-        value: device.device_id || device.thing_key,
-        label: `⚡ ${device.name || `Dispositivo ${device.device_id}`}`,
-      });
-    });
-    
-    // Fallback a devices se realTimeData è vuoto
-    if (realTimeData?.length === 0) {
-      devices?.forEach((device) => {
+    // FIX: Controllo Array.isArray per evitare errore forEach
+    if (Array.isArray(realTimeData)) {
+      realTimeData.forEach((device: any) => {
         options.push({
-          value: device.id,
-          label: `⚡ ${device.name || `Dispositivo ${device.id}`}`,
+          value: device.device_id || device.thing_key,
+          label: `⚡ ${device.name || `Dispositivo ${device.device_id}`}`,
         });
       });
+    }
+    
+    // Fallback a devices se realTimeData è vuoto
+    if (!realTimeData || (Array.isArray(realTimeData) && realTimeData.length === 0)) {
+      // FIX: Controllo Array.isArray
+      if (Array.isArray(devices)) {
+        devices.forEach((device) => {
+          options.push({
+            value: device.id,
+            label: `⚡ ${device.name || `Dispositivo ${device.id}`}`,
+          });
+        });
+      }
     }
     
     return options;
