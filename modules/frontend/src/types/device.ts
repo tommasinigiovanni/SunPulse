@@ -2,6 +2,9 @@
 export type DeviceType = 'inverter' | 'battery' | 'meter' | 'sensor' | 'gateway';
 export type DeviceStatus = 'online' | 'offline' | 'warning' | 'maintenance' | 'error';
 
+// Import alarm types
+import type { DeviceAlarm } from './alarm';
+
 export interface Device {
   id: string;
   name: string;
@@ -12,18 +15,18 @@ export interface Device {
   manufacturer?: string;
   installation_date?: string;
   location?: string;
-  
+
   // Dati real-time
   current_power?: number;
   daily_energy?: number;
   total_energy?: number;
-  
+
   // Metadati
   last_seen?: string;
   firmware_version?: string;
   configuration?: DeviceConfiguration;
-  // alarms?: DeviceAlarm[]; // Temporarily commented - needs import
-  
+  alarms?: DeviceAlarm[];
+
   // Timestamps
   created_at: string;
   updated_at: string;

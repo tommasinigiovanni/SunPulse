@@ -21,6 +21,7 @@ import { dataProvider } from './providers/DataProvider';
 // Components
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { Header } from './components/layout/Header';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 // Pages
 import { Dashboard } from './pages/Dashboard';
@@ -139,23 +140,25 @@ function App() {
   const isDevelopment = process.env.NODE_ENV === 'development';
 
   return (
-    <BrowserRouter>
-      <RefineKbarProvider>
-        <ConfigProvider theme={RefineThemes.Blue}>
-          <AuthProvider>
-            <AuthTokenSetup>
-              {isDevelopment ? (
-                <DevtoolsProvider>
+    <ErrorBoundary showDetails={isDevelopment}>
+      <BrowserRouter>
+        <RefineKbarProvider>
+          <ConfigProvider theme={RefineThemes.Blue}>
+            <AuthProvider>
+              <AuthTokenSetup>
+                {isDevelopment ? (
+                  <DevtoolsProvider>
+                    <AppContent />
+                  </DevtoolsProvider>
+                ) : (
                   <AppContent />
-                </DevtoolsProvider>
-              ) : (
-                <AppContent />
-              )}
-            </AuthTokenSetup>
-          </AuthProvider>
-        </ConfigProvider>
-      </RefineKbarProvider>
-    </BrowserRouter>
+                )}
+              </AuthTokenSetup>
+            </AuthProvider>
+          </ConfigProvider>
+        </RefineKbarProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

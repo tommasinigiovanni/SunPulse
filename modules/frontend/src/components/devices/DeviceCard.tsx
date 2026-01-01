@@ -1,14 +1,15 @@
 import React from 'react';
 import { Card, Badge, Tooltip, Button, Space, Typography, Statistic } from 'antd';
-import { 
-  ControlOutlined, 
-  WarningOutlined, 
+import {
+  ControlOutlined,
+  WarningOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   ExclamationCircleOutlined,
   ToolOutlined
 } from '@ant-design/icons';
 import { Device } from '@/types/device';
+import { DeviceAlarm, AlarmPriority } from '@/types/alarm';
 import { formatPower, formatEnergy, formatDeviceStatus, formatDeviceType, formatRelativeTime } from '@/utils/formatters';
 
 const { Text, Title } = Typography;
@@ -20,11 +21,11 @@ interface DeviceCardProps {
   compact?: boolean;
 }
 
-export const DeviceCard: React.FC<DeviceCardProps> = ({ 
-  device, 
-  onClick, 
+export const DeviceCard: React.FC<DeviceCardProps> = ({
+  device,
+  onClick,
   showActions = true,
-  compact = false 
+  compact = false
 }) => {
   const statusInfo = formatDeviceStatus(device.status);
   const typeLabel = formatDeviceType(device.type);
@@ -41,6 +42,65 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
         return <ToolOutlined style={{ color: statusInfo.color }} />;
       default:
         return <CloseCircleOutlined style={{ color: statusInfo.color }} />;
+    }
+  };
+
+  // Helper functions for alarm styling
+  const getHighestAlarmPriority = (alarms: DeviceAlarm[]): AlarmPriority => {
+    const priorities: AlarmPriority[] = ['critical', 'high', 'medium', 'low', 'info'];
+    for (const priority of priorities) {
+      if (alarms.some(alarm => alarm.priority === priority && alarm.status === 'active')) {
+        return priority;
+      }
+    }
+    return 'info';
+  };
+
+  const getAlarmBackgroundColor = (alarms: DeviceAlarm[]): string => {
+    const highestPriority = getHighestAlarmPriority(alarms);
+    switch (highestPriority) {
+      case 'critical':
+        return '#fff1f0';
+      case 'high':
+        return '#fff2e8';
+      case 'medium':
+        return '#fffbe6';
+      case 'low':
+        return '#f6ffed';
+      default:
+        return '#f0f5ff';
+    }
+  };
+
+  const getAlarmBorderColor = (alarms: DeviceAlarm[]): string => {
+    const highestPriority = getHighestAlarmPriority(alarms);
+    switch (highestPriority) {
+      case 'critical':
+        return '#ffccc7';
+      case 'high':
+        return '#ffbb96';
+      case 'medium':
+        return '#ffe58f';
+      case 'low':
+        return '#b7eb8f';
+      default:
+        return '#adc6ff';
+    }
+  };
+
+  const getAlarmIconColor = (alarms: DeviceAlarm[]): string => {
+    const highestPriority = getHighestAlarmPriority(alarms);
+    switch (highestPriority) {
+      case 'critical':
+        return '#cf1322';
+      case 'high':
+        return '#fa8c16';
+      case 'medium':
+        return '#faad14';
+      case 'low':
+        return '#52c41a';
+      default:
+        return '#1890ff';
     }
   };
 
@@ -168,23 +228,40 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
           </div>
         )}
 
-        {/* Alarms - Temporarily disabled */}
-        {/* {device.alarms && device.alarms.length > 0 && (
-          <div style={{ 
+        {/* Alarms Display */}
+        {device.alarms && device.alarms.length > 0 && (
+          <div style={{
             marginTop: compact ? 4 : 8,
-            padding: compact ? 4 : 8,
-            background: '#fff2e8',
+            padding: compact ? 6 : 10,
+            background: getAlarmBackgroundColor(device.alarms),
             borderRadius: 4,
-            border: '1px solid #ffbb96'
+            border: `1px solid ${getAlarmBorderColor(device.alarms)}`
           }}>
-            <Space size="small">
-              <WarningOutlined style={{ color: '#fa8c16', fontSize: compact ? 12 : 14 }} />
-              <Text style={{ fontSize: compact ? 11 : 12, color: '#fa8c16' }}>
-                {device.alarms.length} allarme{device.alarms.length > 1 ? 'i' : ''} attiv{device.alarms.length > 1 ? 'i' : 'o'}
-              </Text>
+            <Space size="small" style={{ width: '100%', justifyContent: 'space-between' }}>
+              <Space size="small">
+                <WarningOutlined style={{
+                  color: getAlarmIconColor(device.alarms),
+                  fontSize: compact ? 12 : 14
+                }} />
+                <Text style={{
+                  fontSize: compact ? 11 : 12,
+                  color: getAlarmIconColor(device.alarms),
+                  fontWeight: 500
+                }}>
+                  {device.alarms.length} allarme{device.alarms.length > 1 ? 'i' : ''} attiv{device.alarms.length > 1 ? 'i' : 'o'}
+                </Text>
+              </Space>
+              {!compact && (
+                <Badge
+                  count={device.alarms.length}
+                  style={{
+                    backgroundColor: getAlarmIconColor(device.alarms)
+                  }}
+                />
+              )}
             </Space>
           </div>
-        )} */}
+        )}
       </div>
     </Card>
   );
