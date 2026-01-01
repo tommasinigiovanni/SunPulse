@@ -685,5 +685,3 @@ export const Audit: React.FC = () => {
     </div>
   );
 };
-
-export default Audit;
