@@ -32,7 +32,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
-import { api } from '@/utils/api';
+import { axiosInstance } from '@/utils/api';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -111,7 +111,7 @@ export const Audit: React.FC = () => {
         params.date_to = filters.date_range[1].toISOString();
       }
 
-      const response = await api.get('/api/v1/audit/', { params });
+      const response = await axiosInstance.get('/audit/', { params });
       setLogs(response.data.logs || []);
       setTotal(response.data.total || 0);
     } catch (error: any) {
@@ -131,7 +131,7 @@ export const Audit: React.FC = () => {
         params.date_to = filters.date_range[1].toISOString();
       }
 
-      const response = await api.get('/api/v1/audit/stats/summary', { params });
+      const response = await axiosInstance.get('/audit/stats/summary', { params });
       setStats(response.data);
     } catch (error: any) {
       console.error('Error fetching stats:', error);
@@ -188,7 +188,7 @@ export const Audit: React.FC = () => {
         params.date_to = filters.date_range[1].toISOString();
       }
 
-      const response = await api.get('/api/v1/audit/export/csv', {
+      const response = await axiosInstance.get('/audit/export/csv', {
         params,
         responseType: 'blob',
       });
@@ -228,7 +228,7 @@ export const Audit: React.FC = () => {
         params.date_to = filters.date_range[1].toISOString();
       }
 
-      const response = await api.get('/api/v1/audit/export/json', {
+      const response = await axiosInstance.get('/audit/export/json', {
         params,
         responseType: 'blob',
       });
