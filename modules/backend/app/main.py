@@ -10,7 +10,9 @@ import uvicorn
 
 from .config.settings import get_settings
 from .api.v1.router import api_router
-from .services.database import init_db
+from .services.database import init_db, get_db_session
+from .services.audit_service import get_audit_service
+from .middleware.audit_middleware import AuditMiddleware
 from .utils.health import HealthChecker
 
 # Configurazione logging
@@ -19,7 +21,7 @@ logger = structlog.get_logger()
 def create_app() -> FastAPI:
     """Crea e configura l'applicazione FastAPI"""
     settings = get_settings()
-    
+
     app = FastAPI(
         title="SunPulse API",
         description="API per il monitoraggio di impianti fotovoltaici",
@@ -28,7 +30,7 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if settings.DEBUG else None,
         openapi_url="/openapi.json" if settings.DEBUG else None,
     )
-    
+
     # Middleware CORS
     app.add_middleware(
         CORSMiddleware,
@@ -42,7 +44,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # Middleware per host fidati
     app.add_middleware(
         TrustedHostMiddleware,
@@ -55,10 +57,29 @@ def create_app() -> FastAPI:
             "backend",  # Nome container Docker
         ],
     )
-    
+
+    # Middleware Audit (deve essere dopo CORS e TrustedHost)
+    audit_service = get_audit_service()
+    app.add_middleware(
+        AuditMiddleware,
+        audit_service=audit_service,
+        exclude_paths=[
+            "/health",
+            "/health/liveness",
+            "/health/readiness",
+            "/docs",
+            "/redoc",
+            "/openapi.json",
+            "/favicon.ico",
+        ],
+        log_request_body=True,
+        log_response_body=False,
+        max_body_length=10000,
+    )
+
     # Router API
     app.include_router(api_router, prefix="/api/v1")
-    
+
     return app
 
 # Crea l'istanza dell'app

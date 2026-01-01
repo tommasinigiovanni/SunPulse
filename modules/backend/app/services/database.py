@@ -11,6 +11,8 @@ from sqlalchemy.pool import NullPool
 
 from ..config.settings import get_settings
 from ..models.device import Base
+# Import audit models to ensure they're registered with Base
+from ..models.audit import AuditLog
 
 logger = structlog.get_logger()
 

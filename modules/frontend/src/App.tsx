@@ -5,12 +5,13 @@ import { DevtoolsProvider } from "@refinedev/devtools";
 import { RefineKbar, RefineKbarProvider } from "@refinedev/kbar";
 import { ThemedLayoutV2, RefineThemes } from "@refinedev/antd";
 import { ConfigProvider, Layout, notification } from "antd";
-import { 
-  DashboardOutlined, 
-  ControlOutlined, 
+import {
+  DashboardOutlined,
+  ControlOutlined,
   BarChartOutlined,
   SettingOutlined,
-  BellOutlined
+  BellOutlined,
+  AuditOutlined
 } from '@ant-design/icons';
 import routerBindings from "@refinedev/react-router-v6";
 
@@ -29,6 +30,7 @@ import { DeviceDetail } from './pages/DeviceDetail';
 import { Analytics } from './pages/Analytics';
 import { Alarms } from './pages/Alarms';
 import { Settings } from './pages/Settings';
+import { Audit } from './pages/Audit';
 import { DeviceList } from './components/devices/DeviceList';
 
 // Utils
@@ -212,15 +214,23 @@ const AppContent: React.FC = () => {
         {
           name: "alarms",
           list: "/alarms",
-          meta: { 
+          meta: {
             icon: <BellOutlined />,
             label: "Allarmi"
           }
         },
         {
+          name: "audit",
+          list: "/admin/audit",
+          meta: {
+            icon: <AuditOutlined />,
+            label: "Audit Log"
+          }
+        },
+        {
           name: "settings",
           list: "/settings",
-          meta: { 
+          meta: {
             icon: <SettingOutlined />,
             label: "Impostazioni"
           }
@@ -262,15 +272,21 @@ const AppContent: React.FC = () => {
           />
           
           {/* Allarmi */}
-          <Route 
-            path="/alarms" 
-            element={<Alarms />} 
+          <Route
+            path="/alarms"
+            element={<Alarms />}
           />
-          
+
+          {/* Audit Log */}
+          <Route
+            path="/admin/audit"
+            element={<Audit />}
+          />
+
           {/* Impostazioni */}
-          <Route 
-            path="/settings" 
-            element={<Settings />} 
+          <Route
+            path="/settings"
+            element={<Settings />}
           />
         </Route>
         
