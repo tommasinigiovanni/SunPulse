@@ -765,9 +765,100 @@ GET  /api/v1/audit/stats         # Statistiche (azioni per tipo, per utente)
 
 ---
 
-### ⛽ Lettura Contatore Gas [FEAT-007]
+### 🏠 Gestione Utenze Domestiche [FEAT-007]
 
-**Obiettivo:** Permettere agli utenti di registrare le letture del contatore gas sia manualmente che tramite riconoscimento automatico da foto (OCR).
+**Obiettivo:** Modulo completo per la gestione delle utenze domestiche (Acqua 💧, Luce ⚡, Gas ⛽) con due funzionalità principali:
+
+1. **📄 Analisi e Archiviazione Fatture** - Caricamento, OCR e stoccaggio delle bollette
+2. **📷 Autolettura Contatore tramite Foto** - Lettura OCR dei contatori per l'autolettura
+
+---
+
+#### 📄 Funzionalità 1: Analisi e Archiviazione Fatture
+
+Permette all'utente di caricare foto/PDF delle fatture ed estrarre automaticamente i dati per archiviarli e analizzarli.
+
+**Utenze Supportate:**
+
+| Utenza | Dati Estratti | Unità di Misura |
+|--------|---------------|-----------------|
+| 💧 **Acqua** | Consumo, Costo, Periodo, Fornitore | m³, € |
+| ⚡ **Luce** | Consumo (F1/F2/F3), Costo, Potenza, Periodo | kWh, €, kW |
+| ⛽ **Gas** | Consumo, Costo, Periodo, Fornitore | Smc, € |
+
+**Funzionalità:**
+- Upload immagine (JPG, PNG) o PDF della fattura
+- OCR automatico per estrarre testo
+- Parsing intelligente per identificare:
+  - Consumo totale (kWh/m³/Smc)
+  - Costo totale (€)
+  - Periodo di fatturazione (da-a)
+  - Fornitore/Gestore
+  - Dettagli specifici per tipo (es. fasce orarie F1/F2/F3 per luce)
+- Salvataggio dati strutturati nel database
+- Storico fatture con grafici trend
+- Confronto tra periodi
+- Per la luce: confronto bollette vs produzione fotovoltaico
+- Calcolo costo medio per unità (€/kWh, €/m³, €/Smc)
+- Export dati in CSV
+
+**Modello Dati - Fatture:**
+
+```sql
+utility_bills (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  utility_type VARCHAR(20) NOT NULL,   -- 'electricity', 'gas', 'water'
+  provider VARCHAR(100),               -- Fornitore (Enel, Eni, Acea, etc.)
+  bill_number VARCHAR(50),             -- Numero fattura
+  period_start DATE,                   -- Inizio periodo
+  period_end DATE,                     -- Fine periodo
+  consumption DECIMAL(12,3),           -- Consumo (kWh/m³/Smc)
+  total_cost DECIMAL(10,2),            -- Costo totale €
+  
+  -- Campi specifici per Luce
+  f1_kwh DECIMAL(10,2),                -- Fascia F1 (solo luce)
+  f2_kwh DECIMAL(10,2),                -- Fascia F2 (solo luce)
+  f3_kwh DECIMAL(10,2),                -- Fascia F3 (solo luce)
+  power_kw DECIMAL(5,2),               -- Potenza impegnata (solo luce)
+  
+  -- Metadati OCR
+  raw_text TEXT,                       -- Testo OCR originale
+  image_path VARCHAR(500),             -- Path immagine/PDF
+  ocr_confidence DECIMAL(3,2),         -- Score OCR (0-1)
+  
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP
+);
+```
+
+**API Endpoints - Fatture:**
+
+```
+POST /api/v1/bills/upload             # Upload e OCR fattura (qualsiasi utenza)
+GET  /api/v1/bills/                   # Lista fatture (filtri: utility_type, periodo)
+GET  /api/v1/bills/{id}               # Dettaglio fattura
+PUT  /api/v1/bills/{id}               # Modifica dati (correzione manuale)
+DELETE /api/v1/bills/{id}             # Elimina fattura
+GET  /api/v1/bills/stats              # Statistiche aggregate per utenza
+GET  /api/v1/bills/compare            # Confronto consumi tra periodi
+GET  /api/v1/bills/export             # Export CSV
+```
+
+---
+
+#### 📷 Funzionalità 2: Autolettura Contatore tramite Foto
+
+Permette all'utente di registrare le letture dei contatori domestici per l'autolettura da comunicare al gestore.
+
+**Utenze Supportate:**
+
+| Utenza | Tipo Contatore | Unità |
+|--------|----------------|-------|
+| 💧 **Acqua** | Contatore volumetrico | m³ |
+| ⚡ **Luce** | Contatore elettronico | kWh |
+| ⛽ **Gas** | Contatore meccanico/elettronico | Smc (m³) |
 
 **Modalità di Input:**
 
@@ -778,39 +869,41 @@ GET  /api/v1/audit/stats         # Statistiche (azioni per tipo, per utente)
 
 **Funzionalità:**
 - Inserimento lettura manuale con validazione
-- Upload foto contatore con preview
-- OCR automatico per riconoscere le cifre
-- Conferma/correzione valore rilevato
-- Storico letture con tabella paginata
-- Grafico consumo nel tempo
+- Upload foto contatore con preview e crop
+- OCR automatico per riconoscere le cifre del display
+- Conferma/correzione valore rilevato dall'utente
+- Storico letture per ogni utenza con tabella paginata
+- Grafico consumo nel tempo per utenza
 - Calcolo consumo tra due letture
-- Alert se lettura < precedente (errore)
+- Alert se lettura < precedente (possibile errore)
+- Reminder per autolettura periodica
 - Export CSV delle letture
 
-**Flusso OCR:**
+**Flusso OCR Autolettura:**
 
 ```
 ┌────────────────┐     ┌────────────────┐     ┌────────────────┐
 │  Upload Foto   │────▶│ Pre-processing │────▶│   OCR Engine   │
-│  (JPEG/PNG)    │     │ • Crop         │     │  (Tesseract/   │
-└────────────────┘     │ • Threshold    │     │   EasyOCR)     │
-                       │ • Contrast     │     └───────┬────────┘
-                       └────────────────┘             │
-                                                      ▼
+│  Contatore     │     │ • Crop area    │     │  (Tesseract/   │
+│  (JPEG/PNG)    │     │ • Threshold    │     │   EasyOCR)     │
+└────────────────┘     │ • Contrast     │     └───────┬────────┘
+                       │ • Deskew       │             │
+                       └────────────────┘             ▼
 ┌────────────────┐     ┌────────────────┐     ┌────────────────┐
 │    Salvato     │◀────│   Conferma     │◀────│ Valore Rilevato│
 │   in Database  │     │   Utente       │     │   + Confidence │
 └────────────────┘     └────────────────┘     └────────────────┘
 ```
 
-**Modello Dati:**
+**Modello Dati - Letture Contatore:**
 
 ```sql
 meter_readings (
   id SERIAL PRIMARY KEY,
   user_id INTEGER REFERENCES users(id),
-  meter_type VARCHAR(20) NOT NULL,     -- 'gas', 'electricity', 'water'
-  reading_value DECIMAL(12,3) NOT NULL, -- Es: 12345.678 m³
+  utility_type VARCHAR(20) NOT NULL,    -- 'electricity', 'gas', 'water'
+  meter_serial VARCHAR(50),             -- Matricola contatore (opzionale)
+  reading_value DECIMAL(12,3) NOT NULL, -- Es: 12345.678
   reading_date DATE NOT NULL,
   reading_time TIME,
   source VARCHAR(20) NOT NULL,          -- 'manual', 'ocr'
@@ -820,21 +913,40 @@ meter_readings (
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP,
   
-  UNIQUE(user_id, meter_type, reading_date)
+  UNIQUE(user_id, utility_type, reading_date)
 );
 ```
 
-**API Endpoints:**
+**API Endpoints - Autolettura:**
 
 ```
 POST /api/v1/meters/readings           # Nuova lettura manuale
 POST /api/v1/meters/readings/ocr       # Upload foto e OCR
-GET  /api/v1/meters/readings           # Lista letture (con filtri)
+GET  /api/v1/meters/readings           # Lista letture (filtri: utility_type, periodo)
 GET  /api/v1/meters/readings/{id}      # Dettaglio singola lettura
 PUT  /api/v1/meters/readings/{id}      # Modifica lettura
 DELETE /api/v1/meters/readings/{id}    # Elimina lettura
 GET  /api/v1/meters/consumption        # Calcolo consumi per periodo
 GET  /api/v1/meters/export             # Export CSV
+```
+
+---
+
+#### 🔧 Architettura Comune OCR
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│    Frontend     │────▶│   Backend API   │────▶│   OCR Service   │
+│  Upload Image   │     │  /api/v1/ocr    │     │   (Tesseract/   │
+│  (Fattura o     │     │                 │     │   EasyOCR/      │
+│   Contatore)    │     └────────┬────────┘     │   Cloud Vision) │
+└─────────────────┘              │              └─────────────────┘
+                                 ▼
+                        ┌─────────────────┐
+                        │   PostgreSQL    │
+                        │  • utility_bills│
+                        │  • meter_readings│
+                        └─────────────────┘
 ```
 
 **Opzioni OCR:**
@@ -843,106 +955,22 @@ GET  /api/v1/meters/export             # Export CSV
 |----------|-----|--------|-------|
 | **Tesseract** | Gratuito, self-hosted, privacy | Setup complesso | €0 |
 | **EasyOCR** | Python native, buono per cifre | Pesante (GPU) | €0 |
-| **Google Vision** | Molto preciso | Vendor lock-in | ~€1.50/1000 |
-| **AWS Textract** | Buono per form | Vendor lock-in | ~€1.50/1000 |
+| **Google Vision** | Molto preciso, italiano | Vendor lock-in | ~€1.50/1000 |
+| **AWS Textract** | Ottimo per documenti | Vendor lock-in | ~€1.50/1000 |
+| **Azure Form Recognizer** | Pre-trained per fatture | Vendor lock-in | ~€1/1000 |
 
-**Effort Stimato:** 12-16 ore
+**Effort Stimato:** 
+- Analisi Fatture: 16-20 ore
+- Autolettura Contatori: 12-16 ore
+- **Totale modulo completo: 28-36 ore**
 
-**Priorità:** Media-Alta
+**Priorità:** Alta
 
 **Dipendenze:**
 - Storage per immagini (local filesystem o S3)
 - Libreria OCR (pytesseract o easyocr)
-- Frontend: componente upload con crop
-
----
-
-### 🧾 Scansione Bollette [FEAT-001]
-
-**Obiettivo:** Permettere agli utenti di caricare foto/PDF delle bollette elettriche ed estrarre automaticamente i dati per confrontarli con la produzione fotovoltaica.
-
-**Funzionalità:**
-- Upload immagine (JPG, PNG) o PDF della bolletta
-- OCR automatico per estrarre testo
-- Parsing intelligente per identificare:
-  - Consumo totale (kWh)
-  - Costo totale (€)
-  - Periodo di fatturazione
-  - Fornitore energia
-  - Fasce orarie (F1, F2, F3)
-  - Potenza impegnata
-- Salvataggio dati strutturati nel database
-- Storico bollette con grafici trend
-- Confronto bollette vs produzione fotovoltaico
-- Calcolo risparmio effettivo
-
-**Architettura Proposta:**
-
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│    Frontend     │────▶│   Backend API   │────▶│   OCR Service   │
-│  Upload Image   │     │  /api/v1/bills  │     │   (Tesseract/   │
-└─────────────────┘     └────────┬────────┘     │  Cloud Vision)  │
-                                 │              └─────────────────┘
-                                 ▼
-                        ┌─────────────────┐
-                        │   PostgreSQL    │
-                        │  bills table    │
-                        └─────────────────┘
-```
-
-**Modello Dati Proposto:**
-
-```sql
-bills (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id),
-  provider VARCHAR(100),           -- Fornitore (Enel, Eni, etc.)
-  period_start DATE,               -- Inizio periodo
-  period_end DATE,                 -- Fine periodo
-  total_kwh DECIMAL(10,2),         -- Consumo totale kWh
-  total_cost DECIMAL(10,2),        -- Costo totale €
-  f1_kwh DECIMAL(10,2),            -- Fascia F1
-  f2_kwh DECIMAL(10,2),            -- Fascia F2
-  f3_kwh DECIMAL(10,2),            -- Fascia F3
-  power_kw DECIMAL(5,2),           -- Potenza impegnata
-  raw_text TEXT,                   -- Testo OCR originale
-  image_path VARCHAR(500),         -- Path immagine
-  confidence_score DECIMAL(3,2),   -- Score OCR (0-1)
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP
-);
-```
-
-**API Endpoints Proposti:**
-
-```
-POST /api/v1/bills/upload         # Upload e OCR bolletta
-GET  /api/v1/bills/               # Lista bollette utente
-GET  /api/v1/bills/{id}           # Dettaglio bolletta
-PUT  /api/v1/bills/{id}           # Modifica dati (correzione manuale)
-DELETE /api/v1/bills/{id}         # Elimina bolletta
-GET  /api/v1/bills/stats          # Statistiche aggregate
-GET  /api/v1/bills/compare        # Confronto con produzione FV
-```
-
-**Opzioni OCR:**
-
-| Servizio | Pro | Contro | Costo |
-|----------|-----|--------|-------|
-| Tesseract (self-hosted) | Gratuito, privacy, no dipendenze esterne | Meno preciso su layout complessi | €0 |
-| Google Cloud Vision | Molto preciso, supporto italiano | Vendor lock-in | ~€1.50/1000 immagini |
-| AWS Textract | Ottimo per documenti strutturati | Vendor lock-in | ~€1.50/1000 pagine |
-| Azure Form Recognizer | Pre-trained per fatture | Vendor lock-in | ~€1/1000 pagine |
-
-**Effort Stimato:** 16-24 ore
-
-**Priorità:** Media
-
-**Dipendenze:**
-- Storage per immagini (local o S3)
-- Servizio OCR configurato
-- Frontend per upload e visualizzazione
+- Frontend: componenti upload con preview e crop
+- Validazione input per ogni tipo di utenza
 
 ---
 
