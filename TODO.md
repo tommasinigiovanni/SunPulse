@@ -299,6 +299,36 @@
   - **Effort stimato**: 12-16h
   - **Priorità**: Media-Alta
 
+### App Mobile Nativa
+
+- [ ] **[FEAT-008]** App Mobile iOS/Android con Capacitor
+  - **Descrizione**: Convertire il frontend React esistente in app mobile nativa per iOS e Android
+  - **Documentazione**: Vedere `doc/MOBILE_APP_ANALYSIS.md` per analisi completa
+  - **Tecnologia scelta**: Capacitor (wrapper nativo per app web)
+  - **Vantaggi**:
+    - Riutilizzo ~95% del codice esistente
+    - Unico codebase per Web, iOS, Android
+    - Accesso a funzionalità native (Push, Storage, etc.)
+  - **Componenti**:
+    - [ ] Setup Capacitor nel progetto frontend
+    - [ ] Configurazione iOS (Xcode project)
+    - [ ] Configurazione Android (Android Studio project)
+    - [ ] Safe area e status bar styling
+    - [ ] Splash screen e icone app
+    - [ ] Push notifications per allarmi
+    - [ ] Storage locale per cache offline
+    - [ ] Deep links per notifiche
+    - [ ] Build e test su simulatore
+    - [ ] Apple Developer Account e certificati
+    - [ ] Submission App Store
+    - [ ] Submission Google Play (opzionale)
+  - **Requisiti**:
+    - macOS con Xcode (per iOS)
+    - Apple Developer Account ($99/anno)
+    - Google Play Developer Account ($25 una tantum) - opzionale
+  - **Effort stimato**: 2-4 giorni
+  - **Priorità**: Media
+
 ### Audit Log
 
 - [ ] **[FEAT-005]** Sistema Audit Log Completo
@@ -398,10 +428,10 @@
 | ⚠️ High | 6 | 1/6 completed |
 | 🟡 Medium | 15 | **6/15 completed** |
 | 🟢 Low | 8 | 0/8 completed |
-| 🚀 New Features | 7 | 0/7 completed |
+| 🚀 New Features | 8 | 0/8 completed |
 | 📋 Pages | 5 | 4/5 completed |
 | 🔧 Infra | 6 | 0/6 completed |
-| **TOTAL** | **54** | **18/54** |
+| **TOTAL** | **55** | **18/55** |
 
 ---
 

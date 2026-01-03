@@ -260,6 +260,7 @@ cd modules/frontend && npm test
 - [Context File](doc/context.md) - Complete project knowledge base
 - [TODO](TODO.md) - Tasks, bugs and roadmap
 - [ZCS API](doc/) - ZCS Azzurro API specifications
+- [Mobile App Analysis](doc/MOBILE_APP_ANALYSIS.md) - Guida conversione in app iOS/Android
 
 ---
 
