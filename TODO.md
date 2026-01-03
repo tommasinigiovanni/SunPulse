@@ -1,7 +1,184 @@
 # SunPulse - TODO
 
-> **Last updated:** 2025-12-19  
+> **Last updated:** 2026-01-03  
 > **Legend:** 🔴 Critical | ⚠️ High | 🟡 Medium | 🟢 Low
+
+---
+
+## 🏢 ARCHITETTURA BUILDING (PRIORITÀ ALTA)
+
+> **Nuova architettura:** Users → Edifici → Dispositivi
+> 
+> L'edificio diventa l'entità centrale della piattaforma. Quando un utente accede, deve creare un edificio e poi associare i dispositivi.
+
+### Backend - Database & Models
+
+- [ ] **[BUILD-001]** Creare migration Alembic per tabella `buildings`
+  - Campi: id, name, address, address_components (JSONB), place_id, latitude, longitude, timezone, created_at, updated_at, created_by
+  - **Effort**: 1h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[BUILD-002]** Creare migration per tabella `user_buildings` (relazione N:M)
+  - Campi: id, user_id, building_id, role ('owner', 'admin', 'member', 'viewer'), invited_by, joined_at
+  - **Effort**: 1h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[BUILD-003]** Aggiornare tabella `devices` con FK `building_id`
+  - Aggiungere colonna building_id REFERENCES buildings(id)
+  - Migrare dispositivi esistenti (creare building di default)
+  - **Effort**: 2h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[BUILD-004]** Creare migration per tabella `building_weather`
+  - Campi: id, building_id, temperature, feels_like, humidity, pressure, wind_speed, weather_condition, weather_icon, sunrise, sunset, fetched_at
+  - **Effort**: 1h
+  - **Priorità**: ⚠️ Alto
+
+- [ ] **[BUILD-005]** Creare modelli SQLAlchemy per Building, UserBuilding, BuildingWeather
+  - File: `modules/backend/app/models/building.py`
+  - **Effort**: 2h
+  - **Priorità**: 🔴 Critico
+
+### Backend - API Endpoints
+
+- [ ] **[BUILD-006]** Endpoint CRUD Buildings
+  - `GET /api/v1/buildings/` - Lista edifici dell'utente
+  - `POST /api/v1/buildings/` - Crea nuovo edificio
+  - `GET /api/v1/buildings/{id}` - Dettaglio edificio
+  - `PUT /api/v1/buildings/{id}` - Aggiorna edificio
+  - `DELETE /api/v1/buildings/{id}` - Elimina edificio
+  - File: `modules/backend/app/api/v1/endpoints/buildings.py`
+  - **Effort**: 4h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[BUILD-007]** Endpoint gestione dispositivi per edificio
+  - `GET /api/v1/buildings/{id}/devices` - Lista dispositivi
+  - `POST /api/v1/buildings/{id}/devices` - Associa dispositivo
+  - `DELETE /api/v1/buildings/{id}/devices/{did}` - Rimuovi dispositivo
+  - **Effort**: 2h
+  - **Priorità**: ⚠️ Alto
+
+- [ ] **[BUILD-008]** Endpoint gestione membri edificio
+  - `GET /api/v1/buildings/{id}/members` - Lista membri
+  - `POST /api/v1/buildings/{id}/members` - Invita utente
+  - `DELETE /api/v1/buildings/{id}/members/{uid}` - Rimuovi membro
+  - `PUT /api/v1/buildings/{id}/members/{uid}` - Aggiorna ruolo
+  - **Effort**: 3h
+  - **Priorità**: 🟡 Medio
+
+- [ ] **[BUILD-009]** Endpoint Address Autocomplete (Google Places)
+  - `GET /api/v1/address/autocomplete?q=...` - Ricerca indirizzi
+  - `GET /api/v1/address/details/{place_id}` - Dettagli + coordinate
+  - Integrazione Google Places API
+  - File: `modules/backend/app/api/v1/endpoints/address.py`
+  - **Effort**: 3h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[BUILD-010]** Endpoint Weather per edificio
+  - `GET /api/v1/buildings/{id}/weather` - Dati meteo attuali
+  - `GET /api/v1/buildings/{id}/weather/history` - Storico meteo
+  - **Effort**: 2h
+  - **Priorità**: ⚠️ Alto
+
+### Backend - Services
+
+- [ ] **[BUILD-011]** Creare WeatherService
+  - Supporto OpenWeatherMap e WeatherAPI
+  - Fetch dati meteo da coordinate GPS
+  - Caching dati meteo in Redis (TTL 15 min)
+  - File: `modules/backend/app/services/weather_service.py`
+  - **Effort**: 4h
+  - **Priorità**: ⚠️ Alto
+
+- [ ] **[BUILD-012]** Creare GooglePlacesService
+  - Autocomplete indirizzi
+  - Geocoding (indirizzo → coordinate)
+  - File: `modules/backend/app/services/google_places_service.py`
+  - **Effort**: 3h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[BUILD-013]** Creare task Celery `collect_weather_data`
+  - Eseguire ogni 15 minuti per ogni edificio
+  - Salvare dati in tabella building_weather
+  - File: `modules/backend/app/tasks/weather_tasks.py`
+  - **Effort**: 2h
+  - **Priorità**: ⚠️ Alto
+
+- [ ] **[BUILD-014]** Aggiornare DataCollector per filtrare per building_id
+  - I dati raccolti devono essere associati all'edificio
+  - Aggiornare query InfluxDB per includere building_id come tag
+  - **Effort**: 3h
+  - **Priorità**: ⚠️ Alto
+
+### Frontend - Pages & Components
+
+- [ ] **[BUILD-015]** Pagina selezione/creazione edificio (Onboarding)
+  - Mostrata al primo accesso se l'utente non ha edifici
+  - Form creazione edificio con:
+    - Campo nome edificio
+    - Campo indirizzo con Google Autocomplete
+    - Mappa preview della posizione
+  - File: `modules/frontend/src/pages/BuildingOnboarding.tsx`
+  - **Effort**: 6h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[BUILD-016]** Componente AddressAutocomplete
+  - Input con autocomplete Google Places
+  - Preview mappa con marker
+  - File: `modules/frontend/src/components/common/AddressAutocomplete.tsx`
+  - **Effort**: 4h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[BUILD-017]** Selettore Edificio nel Header
+  - Dropdown per cambiare edificio attivo
+  - Mostra nome edificio + temperatura
+  - File: aggiornare `modules/frontend/src/components/layout/Header.tsx`
+  - **Effort**: 2h
+  - **Priorità**: ⚠️ Alto
+
+- [ ] **[BUILD-018]** Pagina gestione edifici
+  - Lista edifici con card
+  - Modifica nome/indirizzo
+  - Gestione membri (invita/rimuovi)
+  - Gestione dispositivi associati
+  - File: `modules/frontend/src/pages/Buildings.tsx`
+  - **Effort**: 6h
+  - **Priorità**: ⚠️ Alto
+
+- [ ] **[BUILD-019]** Aggiornare Dashboard per mostrare temperatura edificio
+  - Card meteo con temperatura attuale
+  - Icona condizioni meteo
+  - Correlazione produzione/temperatura
+  - **Effort**: 2h
+  - **Priorità**: 🟡 Medio
+
+- [ ] **[BUILD-020]** Aggiornare tutti gli hook per includere building_id
+  - `useDevices(buildingId)`
+  - `useEnergyStats(buildingId)`
+  - `useRealTimeData(buildingId)`
+  - **Effort**: 3h
+  - **Priorità**: ⚠️ Alto
+
+### Configurazione & Infrastruttura
+
+- [ ] **[BUILD-021]** Aggiungere variabili ambiente per Google APIs
+  - `GOOGLE_MAPS_API_KEY`
+  - Aggiornare `.env.example`
+  - **Effort**: 0.5h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[BUILD-022]** Aggiungere variabili ambiente per Weather API
+  - `WEATHER_API_PROVIDER` (openweathermap/weatherapi)
+  - `OPENWEATHERMAP_API_KEY` o `WEATHERAPI_KEY`
+  - Aggiornare `.env.example`
+  - **Effort**: 0.5h
+  - **Priorità**: ⚠️ Alto
+
+- [ ] **[BUILD-023]** Configurare Google Maps JS API nel frontend
+  - Aggiungere script Google Maps
+  - Configurare API key restrizioni
+  - **Effort**: 1h
+  - **Priorità**: 🔴 Critico
 
 ---
 
@@ -394,6 +571,7 @@
 
 | Priority | Count | Status |
 |----------|-------|--------|
+| 🏢 **Building Architecture** | **23** | **0/23** ⚡ NEW |
 | 🔴 Critical | 7 | **7/7 completed** ✅ |
 | ⚠️ High | 6 | 1/6 completed |
 | 🟡 Medium | 15 | **6/15 completed** |
@@ -401,7 +579,18 @@
 | 🚀 New Features | 7 | 0/7 completed |
 | 📋 Pages | 5 | 4/5 completed |
 | 🔧 Infra | 6 | 0/6 completed |
-| **TOTAL** | **54** | **18/54** |
+| **TOTAL** | **77** | **18/77** |
+
+### 🏢 Building Architecture Breakdown
+
+| Categoria | Task | Effort Stimato |
+|-----------|------|----------------|
+| Database & Models | BUILD-001 → BUILD-005 | ~7h |
+| API Endpoints | BUILD-006 → BUILD-010 | ~14h |
+| Services | BUILD-011 → BUILD-014 | ~12h |
+| Frontend | BUILD-015 → BUILD-020 | ~23h |
+| Configurazione | BUILD-021 → BUILD-023 | ~2h |
+| **TOTALE** | **23 task** | **~58h** |
 
 ---
 
@@ -417,3 +606,9 @@
 - **2025-12-19**: Fix priorità dati storici vs realtime per energia giornaliera (usa TotalDecimal)
 - **2025-12-19**: Deploy HTTPS con Traefik + Let's Encrypt completato
 - **2025-12-19**: Aggiunta FEAT-007 - Lettura Contatore Gas con OCR
+- **2026-01-03**: 🏢 **ARCHITETTURA BUILDING** - Introdotto concetto di Edificio come entità centrale
+  - Nuovo schema: Users → Edifici → Dispositivi
+  - Più utenti possono accedere allo stesso edificio
+  - Servizio temperatura automatico per ogni edificio
+  - Google Places Autocomplete per ricerca indirizzi
+  - 23 nuovi task aggiunti (stimati ~58h di lavoro)
