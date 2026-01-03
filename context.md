@@ -974,5 +974,331 @@ GET  /api/v1/meters/export             # Export CSV
 
 ---
 
+### 📊 Analytics Incrociata Multi-Sorgente [FEAT-008]
+
+**Obiettivo:** Dashboard di analytics avanzata che incrocia e correla tutti i dati disponibili per fornire insights completi sul consumo energetico domestico.
+
+**Sorgenti Dati Integrate:**
+
+| Sorgente | Dati | Frequenza |
+|----------|------|-----------|
+| ☀️ **Fotovoltaico** | Produzione, consumo, autoconsumo, batteria, import/export rete | Real-time (2 min) |
+| ⚡ **Bollette Luce** | Consumi kWh, costi €, fasce orarie F1/F2/F3 | Mensile/Bimestrale |
+| ⛽ **Bollette Gas** | Consumi Smc, costi € | Mensile/Bimestrale |
+| 💧 **Bollette Acqua** | Consumi m³, costi € | Trimestrale |
+| 📷 **Autoletture** | Letture contatori (luce, gas, acqua) | Su richiesta |
+| 🌡️ **Temperatura Esterna** | Temperatura, umidità, meteo | Oraria (API meteo) |
+
+---
+
+#### 📈 Grafici e Correlazioni Disponibili
+
+**1. Correlazione Consumo Gas vs Temperatura**
+
+```
+📊 Grafico: Scatter plot + Trend line
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+│ Consumo Gas (Smc)
+│    ●
+│   ● ●     ← Inverno (bassa temp, alto consumo)
+│  ●   ●
+│ ●     ● ●
+│●       ● ● ●
+│          ● ● ● ● ← Estate (alta temp, basso consumo)
+└────────────────────────────────────────────▶
+  0°C    10°C    20°C    30°C   Temperatura
+```
+
+**Insight generati:**
+- Coefficiente di correlazione temperatura/consumo
+- Consumo stimato per gradi-giorno (GG)
+- Anomalie di consumo (consumi elevati con temperature miti)
+- Stima consumo per prossimo mese basata su previsioni meteo
+
+---
+
+**2. Produzione Fotovoltaica vs Temperatura/Irraggiamento**
+
+```
+📊 Grafico: Area chart con overlay
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+│ kWh     ███ Produzione FV
+│         ─── Temperatura media
+│    ████████
+│   ██████████████
+│  ████████████████████
+│ ██████████████████████████
+│████████████████████████████████
+└────────────────────────────────────────────▶
+  Gen  Feb  Mar  Apr  Mag  Giu  Lug  Ago  Set  Ott  Nov  Dic
+```
+
+**Insight generati:**
+- Performance ratio impianto vs condizioni meteo ideali
+- Ore equivalenti di sole mensili
+- Degradazione pannelli nel tempo
+- Efficienza inversore vs temperatura ambiente
+
+---
+
+**3. Confronto Bollette vs Autoletture vs Dati Reali**
+
+```
+📊 Grafico: Barre raggruppate
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+│ kWh
+│         ██ Bolletta (fatturato)
+│   ██    ▓▓ Autolettura
+│   ██ ▓▓ ░░ Dati FV (import rete)
+│   ██ ▓▓ ░░
+│   ██ ▓▓ ░░    ██
+│   ██ ▓▓ ░░    ██ ▓▓ ░░
+└────────────────────────────────────────────▶
+     Gennaio        Febbraio        Marzo
+```
+
+**Insight generati:**
+- Discrepanze tra fatturato e misurato
+- Verifica correttezza bollette
+- Stima consumi per periodo non ancora fatturato
+- Alert se differenza > 10%
+
+---
+
+**4. Trend Costi Totali Utenze**
+
+```
+📊 Grafico: Stacked area chart
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+│ €/mese
+│ 400 ─────────────────────────────────────
+│         ████████████ Gas
+│     ░░░░░░░░░░░░░░░░░░░ Luce
+│   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ Acqua
+│ ──────────────────────────────────────────
+│ 0
+└────────────────────────────────────────────▶
+  Gen  Feb  Mar  Apr  Mag  Giu  Lug  Ago  Set
+```
+
+**Insight generati:**
+- Costo totale mensile/annuale utenze
+- Ripartizione percentuale per utenza
+- Trend YoY (anno su anno)
+- Previsione costi prossimi mesi
+
+---
+
+**5. Bilancio Energetico Completo**
+
+```
+📊 Grafico: Sankey diagram
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Produzione FV ════════╗
+       (500 kWh)        ║
+                        ╠══▶ Autoconsumo (300 kWh)
+                        ║
+                        ╠══▶ Batteria (100 kWh)
+                        ║
+                        ╚══▶ Vendita Rete (100 kWh)
+
+  Acquisto Rete ════════╗
+       (200 kWh)        ╠══▶ Consumo Casa (500 kWh)
+                        ║
+  Da Batteria ══════════╝
+       (100 kWh)
+
+```
+
+**Insight generati:**
+- Autosufficienza energetica (%)
+- Tasso di autoconsumo (%)
+- Risparmio economico vs scenario senza FV
+- CO₂ evitata
+
+---
+
+**6. Heatmap Consumi Orari**
+
+```
+📊 Grafico: Heatmap (calore)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        00 02 04 06 08 10 12 14 16 18 20 22
+Lun     ░░ ░░ ░░ ░░ ▓▓ ██ ██ ██ ▓▓ ▓▓ ░░ ░░
+Mar     ░░ ░░ ░░ ░░ ▓▓ ██ ██ ██ ▓▓ ▓▓ ░░ ░░
+Mer     ░░ ░░ ░░ ░░ ▓▓ ██ ██ ██ ▓▓ ▓▓ ░░ ░░
+Gio     ░░ ░░ ░░ ░░ ▓▓ ██ ██ ██ ▓▓ ▓▓ ░░ ░░
+Ven     ░░ ░░ ░░ ░░ ▓▓ ██ ██ ██ ▓▓ ▓▓ ░░ ░░
+Sab     ░░ ░░ ░░ ▓▓ ▓▓ ▓▓ ▓▓ ▓▓ ▓▓ ██ ██ ▓▓
+Dom     ░░ ░░ ░░ ▓▓ ▓▓ ▓▓ ▓▓ ▓▓ ▓▓ ██ ██ ▓▓
+
+░░ Basso   ▓▓ Medio   ██ Alto
+```
+
+**Insight generati:**
+- Pattern di consumo settimanale
+- Picchi di utilizzo
+- Suggerimenti per spostare carichi nelle ore di produzione FV
+- Ottimizzazione fasce orarie (F1/F2/F3)
+
+---
+
+#### 🌡️ Integrazione Dati Meteo
+
+**Sorgente Dati Temperatura:**
+
+| Provider API | Dati | Costo |
+|--------------|------|-------|
+| **OpenWeatherMap** | Temp, umidità, meteo, previsioni | Free tier: 1000 call/day |
+| **WeatherAPI** | Temp, UV, precipitazioni | Free tier: 1M call/month |
+| **Open-Meteo** | Storico + previsioni | Gratuito, open source |
+
+**Dati Meteo Raccolti:**
+
+```sql
+weather_data (
+  id SERIAL PRIMARY KEY,
+  location VARCHAR(100),              -- Località
+  timestamp TIMESTAMP NOT NULL,
+  temperature DECIMAL(4,1),           -- °C
+  feels_like DECIMAL(4,1),            -- °C percepita
+  humidity INTEGER,                   -- %
+  pressure INTEGER,                   -- hPa
+  clouds INTEGER,                     -- % copertura nuvolosa
+  uv_index DECIMAL(3,1),              -- Indice UV
+  wind_speed DECIMAL(4,1),            -- km/h
+  weather_condition VARCHAR(50),      -- 'sunny', 'cloudy', 'rain', etc.
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Indice per query veloci
+CREATE INDEX idx_weather_timestamp ON weather_data(timestamp);
+CREATE INDEX idx_weather_location ON weather_data(location);
+```
+
+**Task Celery per raccolta meteo:**
+
+```python
+# Ogni ora: raccolta dati meteo
+collect_weather_data: ogni 60 minuti
+
+# Ogni giorno: calcolo gradi-giorno
+calculate_degree_days: ogni giorno alle 00:30
+```
+
+---
+
+#### 📊 API Endpoints Analytics Incrociata
+
+```
+# Dashboard principale
+GET  /api/v1/analytics/dashboard              # KPI aggregati multi-sorgente
+
+# Correlazioni
+GET  /api/v1/analytics/correlation/gas-temp   # Correlazione gas vs temperatura
+GET  /api/v1/analytics/correlation/pv-weather # Correlazione FV vs meteo
+GET  /api/v1/analytics/correlation/consumption-temp  # Consumo elettrico vs temp
+
+# Confronti
+GET  /api/v1/analytics/compare/bills-readings # Confronto bollette vs autoletture
+GET  /api/v1/analytics/compare/bills-pv       # Confronto bollette vs dati FV
+GET  /api/v1/analytics/compare/yoy            # Confronto anno su anno
+
+# Trend e previsioni
+GET  /api/v1/analytics/trends/costs           # Trend costi utenze
+GET  /api/v1/analytics/trends/consumption     # Trend consumi
+GET  /api/v1/analytics/forecast/consumption   # Previsione consumi
+GET  /api/v1/analytics/forecast/costs         # Previsione costi
+
+# Bilancio energetico
+GET  /api/v1/analytics/energy-balance         # Sankey diagram data
+GET  /api/v1/analytics/heatmap/consumption    # Heatmap consumi orari
+
+# Meteo
+GET  /api/v1/weather/current                  # Meteo attuale
+GET  /api/v1/weather/history                  # Storico meteo
+GET  /api/v1/weather/forecast                 # Previsioni meteo
+
+# Export
+GET  /api/v1/analytics/export/report          # Report PDF completo
+GET  /api/v1/analytics/export/csv             # Export dati CSV
+```
+
+---
+
+#### 🖥️ Frontend - Pagina Analytics Avanzata
+
+**Nuova pagina:** `/analytics/advanced`
+
+**Layout proposto:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  📊 Analytics Avanzata                    [Periodo ▼] [Export] │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌────────────┐│
+│  │ Costo Tot.  │ │ Consumo Tot │ │ Risparmio FV│ │ CO₂ Evitata││
+│  │   €450/mese │ │  850 kWh    │ │    €120     │ │   340 kg   ││
+│  └─────────────┘ └─────────────┘ └─────────────┘ └────────────┘│
+│                                                                 │
+│  ┌────────────────────────────────────────────────────────────┐│
+│  │ 📈 Trend Costi Utenze (Luce + Gas + Acqua)                 ││
+│  │ [Stacked Area Chart - 12 mesi]                             ││
+│  └────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│  ┌──────────────────────────┐ ┌───────────────────────────────┐│
+│  │ 🌡️ Gas vs Temperatura    │ │ ☀️ Produzione FV vs Meteo     ││
+│  │ [Scatter + Correlation]  │ │ [Dual Axis Chart]             ││
+│  └──────────────────────────┘ └───────────────────────────────┘│
+│                                                                 │
+│  ┌──────────────────────────┐ ┌───────────────────────────────┐│
+│  │ ⚡ Bilancio Energetico   │ │ 📋 Bollette vs Autoletture    ││
+│  │ [Sankey Diagram]         │ │ [Grouped Bar Chart]           ││
+│  └──────────────────────────┘ └───────────────────────────────┘│
+│                                                                 │
+│  ┌────────────────────────────────────────────────────────────┐│
+│  │ 🔥 Heatmap Consumi Settimanali                             ││
+│  │ [7x24 Heatmap Grid]                                        ││
+│  └────────────────────────────────────────────────────────────┘│
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### 💡 Insight Automatici e Suggerimenti
+
+Il sistema genera automaticamente suggerimenti basati sui dati incrociati:
+
+**Esempi di Insight:**
+
+| Categoria | Insight | Azione Suggerita |
+|-----------|---------|------------------|
+| 🔥 **Gas** | "Consumo gas +30% rispetto a stesso periodo anno scorso con temperatura simile" | "Verificare efficienza caldaia o isolamento" |
+| ☀️ **FV** | "Produzione -15% rispetto a previsioni meteo" | "Controllare pulizia pannelli" |
+| ⚡ **Luce** | "70% consumo in fascia F1 (più costosa)" | "Spostare carichi in F2/F3 o ore solari" |
+| 💧 **Acqua** | "Consumo anomalo: +50% rispetto a media" | "Verificare possibili perdite" |
+| 💰 **Costi** | "Bolletta luce non corrisponde a dati FV" | "Verificare correttezza fatturazione" |
+| 🌡️ **Meteo** | "Prossima settimana prevista ondata di freddo" | "Stimato consumo gas +40%" |
+
+---
+
+**Effort Stimato:**
+- Backend (API, correlazioni, meteo): 16-20 ore
+- Frontend (grafici, dashboard): 20-24 ore
+- **Totale: 36-44 ore**
+
+**Priorità:** Media-Alta
+
+**Dipendenze:**
+- [FEAT-007] Gestione Utenze completata
+- API meteo configurata
+- Libreria grafici avanzati (Apache ECharts, Recharts o Plotly)
+- Dati storici sufficienti (almeno 3 mesi)
+
+---
+
 *Questo file viene rigenerato automaticamente. Non modificare manualmente.*
 
