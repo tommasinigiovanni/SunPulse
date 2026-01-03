@@ -75,6 +75,18 @@ celery_app.conf.beat_schedule = {
         'task': 'app.services.data_collector.cleanup_old_cache',
         'schedule': crontab(hour=3, minute=0),  # 03:00 UTC
     },
+    
+    # Report giornaliero email alle 20:00 (19:00 UTC in inverno, 18:00 UTC in estate)
+    'send-daily-email-report': {
+        'task': 'app.services.data_collector.send_daily_email_report',
+        'schedule': crontab(hour=19, minute=0),  # 19:00 UTC = 20:00 CET
+    },
+    
+    # Report settimanale email domenica alle 10:00 (09:00 UTC)
+    'send-weekly-email-report': {
+        'task': 'app.services.data_collector.send_weekly_email_report',
+        'schedule': crontab(hour=9, minute=0, day_of_week=0),  # Domenica 09:00 UTC = 10:00 CET
+    },
 }
 
 class DataCollectionError(Exception):
@@ -176,8 +188,120 @@ async def _collect_realtime_data_async() -> Dict[str, Any]:
 
 @celery_app.task(bind=True, max_retries=2)
 def collect_alarm_data(self):
-    """Task Celery: Raccolta allarmi per tutti i dispositivi attivi"""
-    return {"devices_processed": 0, "alarms_found": 0, "errors": 0}
+    """Task Celery: Raccolta allarmi per tutti i dispositivi attivi e invio notifiche"""
+    task_id = self.request.id
+    logger.info("Starting alarm data collection", task_id=task_id)
+    
+    try:
+        result = asyncio.run(_collect_alarm_data_async())
+        logger.info("Alarm data collection completed", task_id=task_id, **result)
+        return result
+        
+    except Exception as e:
+        logger.error("Alarm data collection failed", task_id=task_id, error=str(e))
+        return {"devices_processed": 0, "alarms_found": 0, "errors": 1, "error": str(e)}
+
+
+async def _collect_alarm_data_async() -> Dict[str, Any]:
+    """Implementazione async della raccolta allarmi con notifiche email"""
+    from ..services.email_service import get_email_service
+    from ..services.database import get_db_session
+    from ..models.settings import UserSettings
+    from sqlalchemy import select
+    
+    settings = get_settings()
+    thing_keys = settings.device_thing_keys
+    zcs_service = await get_zcs_service()
+    cache_service = await get_cache_service()
+    email_service = get_email_service()
+    
+    devices_processed = 0
+    alarms_found = 0
+    emails_sent = 0
+    errors = 0
+    
+    # Cache key per tracciare allarmi già notificati
+    NOTIFIED_ALARMS_KEY = "alarms:notified"
+    
+    for thing_key in thing_keys:
+        try:
+            # Ottieni allarmi da ZCS
+            alarm_data = await zcs_service.get_alarm_data([thing_key])
+            devices_processed += 1
+            
+            if not alarm_data or not alarm_data.get("success"):
+                continue
+            
+            device_alarms = alarm_data.get("data", {}).get(thing_key, {})
+            current_alarms = device_alarms.get("alarms", [])
+            
+            if not current_alarms:
+                continue
+            
+            alarms_found += len(current_alarms)
+            
+            # Controlla se ci sono nuovi allarmi critici da notificare
+            for alarm in current_alarms:
+                alarm_code = alarm.get("code", "UNKNOWN")
+                alarm_id = f"{thing_key}:{alarm_code}"
+                
+                # Verifica se già notificato (evita spam)
+                already_notified = await cache_service.redis.sismember(NOTIFIED_ALARMS_KEY, alarm_id)
+                if already_notified:
+                    continue
+                
+                # Determina severità
+                severity = "warning"
+                alarm_level = alarm.get("level", "").lower()
+                if "critical" in alarm_level or "error" in alarm_level or alarm.get("priority", 0) >= 3:
+                    severity = "critical"
+                elif "info" in alarm_level:
+                    severity = "info"
+                
+                # Invia notifiche solo per allarmi critici o warning
+                if severity in ["critical", "warning"] and email_service.is_configured:
+                    try:
+                        # Ottieni utenti che vogliono notifiche
+                        async with get_db_session() as db:
+                            notify_field = UserSettings.notify_critical_alarms if severity == "critical" else UserSettings.notify_warnings
+                            result = await db.execute(
+                                select(UserSettings).where(
+                                    notify_field == True,
+                                    UserSettings.notification_email.isnot(None)
+                                )
+                            )
+                            users_to_notify = result.scalars().all()
+                        
+                        for user in users_to_notify:
+                            email_result = await email_service.send_alarm_notification(
+                                alarm_type=alarm.get("type", alarm_code),
+                                alarm_message=alarm.get("message", f"Allarme {alarm_code} rilevato"),
+                                device_name=f"Dispositivo {thing_key[-4:]}",
+                                severity=severity,
+                                to_email=user.notification_email
+                            )
+                            if email_result.get("success"):
+                                emails_sent += 1
+                        
+                        # Marca come notificato (scade dopo 24 ore)
+                        await cache_service.redis.sadd(NOTIFIED_ALARMS_KEY, alarm_id)
+                        await cache_service.redis.expire(NOTIFIED_ALARMS_KEY, 86400)
+                        
+                    except Exception as e:
+                        logger.error("Error sending alarm notification", alarm_id=alarm_id, error=str(e))
+                        errors += 1
+                        
+        except Exception as e:
+            logger.error("Error processing device alarms", thing_key=thing_key, error=str(e))
+            errors += 1
+    
+    return {
+        "devices_processed": devices_processed,
+        "alarms_found": alarms_found,
+        "emails_sent": emails_sent,
+        "errors": errors
+    }
+
 
 @celery_app.task
 def health_check_task():
@@ -439,3 +563,266 @@ def get_task_status(task_id: str) -> Dict[str, Any]:
             "status": "ERROR",
             "error": str(e)
         }
+
+
+# ==============================================================================
+# EMAIL REPORT TASKS
+# ==============================================================================
+
+@celery_app.task(bind=True, max_retries=2)
+def send_daily_email_report(self):
+    """
+    Task Celery: Invia report giornaliero via email
+    
+    Eseguito ogni sera alle 20:00 per gli utenti che hanno abilitato notify_daily_report.
+    """
+    task_id = self.request.id
+    logger.info("Starting daily email report", task_id=task_id)
+    
+    try:
+        result = asyncio.run(_send_daily_email_report_async())
+        logger.info("Daily email report completed", task_id=task_id, **result)
+        return result
+        
+    except Exception as e:
+        logger.error("Daily email report failed", task_id=task_id, error=str(e))
+        raise self.retry(countdown=300, exc=e)  # Retry dopo 5 minuti
+
+
+async def _send_daily_email_report_async() -> Dict[str, Any]:
+    """Implementazione async del report giornaliero"""
+    from ..services.email_service import get_email_service
+    from ..services.database import get_db_session
+    from ..models.settings import UserSettings
+    from sqlalchemy import select
+    
+    email_service = get_email_service()
+    if not email_service.is_configured:
+        return {"success": False, "error": "Email service not configured", "sent": 0}
+    
+    emails_sent = 0
+    errors = []
+    
+    try:
+        # Ottieni tutti gli utenti con report giornaliero abilitato
+        async with get_db_session() as db:
+            result = await db.execute(
+                select(UserSettings).where(
+                    UserSettings.notify_daily_report == True,
+                    UserSettings.notification_email.isnot(None)
+                )
+            )
+            users_with_daily_report = result.scalars().all()
+        
+        if not users_with_daily_report:
+            logger.info("No users with daily report enabled")
+            return {"success": True, "sent": 0, "message": "No users with daily report enabled"}
+        
+        # Ottieni dati energia del giorno
+        zcs_service = await get_zcs_service()
+        settings = get_settings()
+        thing_keys = settings.device_thing_keys
+        
+        # Aggregato giornaliero
+        total_production = 0
+        total_consumption = 0
+        total_self_consumption = 0
+        total_from_grid = 0
+        total_to_grid = 0
+        
+        for thing_key in thing_keys:
+            try:
+                realtime = await zcs_service.get_realtime_data([thing_key])
+                if realtime and realtime.get("success"):
+                    data = realtime.get("data", {}).get(thing_key, {})
+                    rt_data = data.get("realtimeData", {})
+                    
+                    total_production += float(rt_data.get("generatingTodayEnergy", 0) or 0)
+                    total_consumption += float(rt_data.get("consumingTodayEnergy", 0) or 0)
+                    total_self_consumption += float(rt_data.get("autoConsumingEnergy", 0) or 0)
+                    total_from_grid += float(rt_data.get("importingEnergy", 0) or 0)
+                    total_to_grid += float(rt_data.get("exportingEnergy", 0) or 0)
+            except Exception as e:
+                logger.warning("Error getting data for device", thing_key=thing_key, error=str(e))
+        
+        # Invia email a ogni utente
+        for user_settings in users_with_daily_report:
+            try:
+                # Calcola risparmio con tariffe utente
+                energy_price = user_settings.energy_price or 0.25
+                sell_price = user_settings.sell_price or 0.10
+                savings = (total_self_consumption * energy_price) + (total_to_grid * sell_price)
+                
+                result = await email_service.send_daily_report(
+                    production_kwh=total_production,
+                    consumption_kwh=total_consumption,
+                    self_consumption_kwh=total_self_consumption,
+                    from_grid_kwh=total_from_grid,
+                    to_grid_kwh=total_to_grid,
+                    savings_eur=savings,
+                    to_email=user_settings.notification_email,
+                    system_name=user_settings.system_name or "Il mio impianto"
+                )
+                
+                if result.get("success"):
+                    emails_sent += 1
+                else:
+                    errors.append(f"User {user_settings.user_id}: {result.get('error')}")
+                    
+            except Exception as e:
+                errors.append(f"User {user_settings.user_id}: {str(e)}")
+        
+        return {
+            "success": True,
+            "sent": emails_sent,
+            "errors": errors if errors else None,
+            "production_kwh": total_production
+        }
+        
+    except Exception as e:
+        logger.error("Error in daily email report", error=str(e))
+        return {"success": False, "error": str(e), "sent": emails_sent}
+
+
+@celery_app.task(bind=True, max_retries=2)
+def send_weekly_email_report(self):
+    """
+    Task Celery: Invia report settimanale via email
+    
+    Eseguito ogni domenica alle 10:00 per gli utenti che hanno abilitato notify_weekly_report.
+    """
+    task_id = self.request.id
+    logger.info("Starting weekly email report", task_id=task_id)
+    
+    try:
+        result = asyncio.run(_send_weekly_email_report_async())
+        logger.info("Weekly email report completed", task_id=task_id, **result)
+        return result
+        
+    except Exception as e:
+        logger.error("Weekly email report failed", task_id=task_id, error=str(e))
+        raise self.retry(countdown=600, exc=e)  # Retry dopo 10 minuti
+
+
+async def _send_weekly_email_report_async() -> Dict[str, Any]:
+    """Implementazione async del report settimanale"""
+    from ..services.email_service import get_email_service
+    from ..services.database import get_db_session
+    from ..models.settings import UserSettings
+    from ..models.device import DailyEnergy
+    from sqlalchemy import select, and_
+    from zoneinfo import ZoneInfo
+    
+    email_service = get_email_service()
+    if not email_service.is_configured:
+        return {"success": False, "error": "Email service not configured", "sent": 0}
+    
+    emails_sent = 0
+    errors = []
+    
+    try:
+        italy_tz = ZoneInfo("Europe/Rome")
+        today = datetime.now(italy_tz).date()
+        week_ago = today - timedelta(days=7)
+        
+        # Ottieni tutti gli utenti con report settimanale abilitato
+        async with get_db_session() as db:
+            result = await db.execute(
+                select(UserSettings).where(
+                    UserSettings.notify_weekly_report == True,
+                    UserSettings.notification_email.isnot(None)
+                )
+            )
+            users_with_weekly_report = result.scalars().all()
+        
+        if not users_with_weekly_report:
+            logger.info("No users with weekly report enabled")
+            return {"success": True, "sent": 0, "message": "No users with weekly report enabled"}
+        
+        # Ottieni dati settimanali dal database
+        settings = get_settings()
+        thing_keys = settings.device_thing_keys
+        
+        async with get_db_session() as db:
+            result = await db.execute(
+                select(DailyEnergy).where(
+                    and_(
+                        DailyEnergy.device_thing_key.in_(thing_keys),
+                        DailyEnergy.date >= week_ago,
+                        DailyEnergy.date < today
+                    )
+                ).order_by(DailyEnergy.date)
+            )
+            daily_records = result.scalars().all()
+        
+        # Aggrega per giorno
+        daily_data = []
+        total_production = 0
+        total_consumption = 0
+        total_self_consumption = 0
+        total_from_grid = 0
+        total_to_grid = 0
+        
+        # Raggruppa per data
+        from collections import defaultdict
+        by_date = defaultdict(lambda: {"production": 0, "consumption": 0, "self_consumption": 0})
+        
+        for record in daily_records:
+            date_str = record.date.strftime("%d/%m")
+            by_date[date_str]["production"] += record.energy_generating or 0
+            by_date[date_str]["consumption"] += record.energy_consuming or 0
+            by_date[date_str]["self_consumption"] += record.energy_autoconsuming or 0
+            total_production += record.energy_generating or 0
+            total_consumption += record.energy_consuming or 0
+            total_self_consumption += record.energy_autoconsuming or 0
+            total_from_grid += record.energy_importing or 0
+            total_to_grid += record.energy_exporting or 0
+        
+        # Invia email a ogni utente
+        for user_settings in users_with_weekly_report:
+            try:
+                energy_price = user_settings.energy_price or 0.25
+                sell_price = user_settings.sell_price or 0.10
+                total_savings = (total_self_consumption * energy_price) + (total_to_grid * sell_price)
+                
+                # Prepara daily_data con risparmio calcolato per ogni giorno
+                daily_data_for_user = []
+                for date_str, data in sorted(by_date.items()):
+                    day_savings = (data["self_consumption"] * energy_price) + (data.get("to_grid", 0) * sell_price)
+                    daily_data_for_user.append({
+                        "date": date_str,
+                        "production": data["production"],
+                        "consumption": data["consumption"],
+                        "savings": day_savings
+                    })
+                
+                result = await email_service.send_weekly_report(
+                    total_production_kwh=total_production,
+                    total_consumption_kwh=total_consumption,
+                    total_self_consumption_kwh=total_self_consumption,
+                    total_from_grid_kwh=total_from_grid,
+                    total_to_grid_kwh=total_to_grid,
+                    total_savings_eur=total_savings,
+                    daily_data=daily_data_for_user,
+                    to_email=user_settings.notification_email,
+                    system_name=user_settings.system_name or "Il mio impianto"
+                )
+                
+                if result.get("success"):
+                    emails_sent += 1
+                else:
+                    errors.append(f"User {user_settings.user_id}: {result.get('error')}")
+                    
+            except Exception as e:
+                errors.append(f"User {user_settings.user_id}: {str(e)}")
+        
+        return {
+            "success": True,
+            "sent": emails_sent,
+            "errors": errors if errors else None,
+            "total_production_kwh": total_production
+        }
+        
+    except Exception as e:
+        logger.error("Error in weekly email report", error=str(e))
+        return {"success": False, "error": str(e), "sent": emails_sent}

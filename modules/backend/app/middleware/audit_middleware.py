@@ -242,23 +242,28 @@ class AuditMiddleware(BaseHTTPMiddleware):
         return action_info
 
     async def _get_request_body(self, request: Request) -> Optional[Dict[str, Any]]:
-        """Estrae e parsifica il body della richiesta"""
-        try:
-            body_bytes = await request.body()
-            if not body_bytes:
-                return None
-
-            # Limita dimensione
-            if len(body_bytes) > self.max_body_length:
-                return {"_truncated": True, "_size": len(body_bytes)}
-
-            body_str = body_bytes.decode("utf-8")
-            return json.loads(body_str)
-        except json.JSONDecodeError:
-            return {"_raw": True}
-        except Exception as e:
-            logger.warning(f"Error parsing request body: {e}")
-            return None
+        """
+        Estrae e parsifica il body della richiesta.
+        
+        NOTA: Non leggiamo il body qui perché in Starlette/FastAPI il body
+        può essere letto solo una volta. Se lo leggiamo nel middleware,
+        l'endpoint non può più leggerlo.
+        
+        Invece, loggheremo solo che c'era un body senza il contenuto.
+        """
+        # Non consumare il body - causa blocco dell'endpoint
+        # Logghiamo solo che la richiesta aveva un body
+        content_length = request.headers.get("content-length", "0")
+        content_type = request.headers.get("content-type", "")
+        
+        if content_length and int(content_length) > 0:
+            return {
+                "_body_present": True,
+                "_content_length": int(content_length),
+                "_content_type": content_type
+            }
+        
+        return None
 
     def _sanitize_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Sanitizza dati sensibili dal payload"""

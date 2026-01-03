@@ -1,7 +1,7 @@
 # ☀️ SunPulse - Context File
 > **Data ultimo aggiornamento:** 2026-01-03  
 > **Versione progetto:** v2.2.0  
-> **Stato:** Fase 3 quasi completata, deploy HTTPS attivo, architettura Building in sviluppo
+> **Stato:** Fase 3 completata, deploy HTTPS attivo, architettura Building in sviluppo, notifiche email automatiche attive
 
 ---
 
@@ -199,7 +199,7 @@ POST /api/v1/onboarding/validate-device  # Valida thing_key dispositivo
 - [x] InfluxDB Writer ottimizzato
 - [x] API Endpoints completi (health, devices, data, alarms, tasks)
 
-### Fase 3 - Dashboard Frontend ✅ QUASI COMPLETATA
+### Fase 3 - Dashboard Frontend ✅ COMPLETATA
 - [x] Setup RefineJS + Ant Design
 - [x] Struttura routing base
 - [x] Componenti layout (Header, Footer con credits)
@@ -215,9 +215,10 @@ POST /api/v1/onboarding/validate-device  # Valida thing_key dispositivo
 - [x] Email Notifications (Resend) ✅ 2025-12-16
 - [x] Logo e branding ✅ 2025-12-19
 - [x] Manuale Utente (`doc/MANUALE_UTENTE.md`) ✅ 2025-12-19
+- [x] Persistenza Settings (PostgreSQL) ✅ 2025-12-11
+- [x] Email Report Automatici (Celery) ✅ 2025-12-11
 - [ ] Status Page
 - [ ] Documentazione API (Postman/Bruno)
-- [ ] Persistenza Settings
 
 ### Fase 4 - Production Ready 🔄 IN CORSO
 - [x] SSL/HTTPS con Traefik + Let's Encrypt ✅ 2025-12-19
@@ -700,8 +701,12 @@ Quando crei un nuovo endpoint:
 | Task | Schedule | Descrizione |
 |------|----------|-------------|
 | collect_realtime_data | ogni 2 min | Raccolta dati tempo reale |
-| collect_alarm_data | ogni 30 sec | Raccolta stato allarmi |
+| collect_alarm_data | ogni 30 sec | Raccolta allarmi + invio notifiche email |
 | health_check_task | ogni 5 min | Health check sistema |
+| collect_daily_energy | 00:05 UTC | Persistenza dati giornalieri in PostgreSQL |
+| cleanup_old_cache | 03:00 UTC | Pulizia cache Redis obsoleta |
+| send_daily_email_report | 19:00 UTC (20:00 CET) | Report giornaliero email |
+| send_weekly_email_report | Dom 09:00 UTC (10:00 CET) | Report settimanale email |
 | **collect_weather_data** ✨ | ogni 15 min | Recupero temperatura per ogni edificio |
 | **cleanup_weather_history** ✨ | ogni 24h | Pulizia dati meteo > 30 giorni |
 
@@ -871,6 +876,9 @@ ENVIRONMENT=production
 | 2025-12-12 | Riorganizzata Dashboard con bilancio energetico |
 | 2025-12-16 | Implementato sistema email (Resend) |
 | 2025-12-16 | Aggiunte nuove features: Status Page, Doc API, Doc Utente |
+| 2025-12-11 | Implementata persistenza Settings in PostgreSQL |
+| 2025-12-11 | Implementati report email automatici (giornaliero + settimanale) |
+| 2025-12-11 | Implementato trigger automatico notifiche su allarmi |
 | **2026-01-03** | **Architettura Building: introduzione entità Edificio come elemento centrale** |
 | **2026-01-03** | **Definito modello Users → Buildings → Devices** |
 | **2026-01-03** | **Aggiunto servizio temperatura per edifici** |

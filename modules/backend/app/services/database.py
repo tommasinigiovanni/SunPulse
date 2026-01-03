@@ -20,6 +20,7 @@ logger = structlog.get_logger()
 # SQLAlchemy Async Engine
 _async_engine = None
 _async_session_factory = None
+_engine_lock = asyncio.Lock()
 
 class DatabaseService:
     """Servizio per gestire le connessioni ai database"""
@@ -137,11 +138,19 @@ async def get_async_engine():
     """Ottieni SQLAlchemy async engine"""
     global _async_engine, _async_session_factory
     
-    if _async_engine is None:
+    if _async_engine is not None:
+        return _async_engine
+    
+    async with _engine_lock:
+        # Double check after acquiring lock
+        if _async_engine is not None:
+            return _async_engine
+            
         settings = get_settings()
         # Converti URL PostgreSQL per asyncpg
         db_url = settings.database_url.replace("postgresql://", "postgresql+asyncpg://")
         
+        logger.info("Creating SQLAlchemy async engine...")
         _async_engine = create_async_engine(
             db_url,
             poolclass=NullPool,  # Use NullPool per evitare problemi con async
@@ -155,9 +164,12 @@ async def get_async_engine():
         )
         
         # Crea le tabelle se non esistono
-        async with _async_engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-            logger.info("Database tables verified/created")
+        try:
+            async with _async_engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+                logger.info("Database tables verified/created")
+        except Exception as e:
+            logger.warning("Could not create tables (may already exist)", error=str(e))
     
     return _async_engine
 
@@ -183,5 +195,17 @@ async def get_db_session():
 
 async def get_db():
     """Dependency per FastAPI - restituisce sessione database"""
-    async with get_db_session() as session:
+    global _async_session_factory
+
+    if _async_session_factory is None:
+        await get_async_engine()
+
+    session = _async_session_factory()
+    try:
         yield session
+    except Exception as e:
+        await session.rollback()
+        logger.error("Database session error in dependency", error=str(e))
+        raise
+    finally:
+        await session.close()

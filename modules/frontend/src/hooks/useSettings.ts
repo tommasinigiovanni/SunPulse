@@ -72,7 +72,7 @@ export const useSettingsDevices = () => {
   });
 
   return {
-    devices: devices || [],
+    devices: Array.isArray(devices) ? devices : [],
     isLoading,
     isError,
     error,

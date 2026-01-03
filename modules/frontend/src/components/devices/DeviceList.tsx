@@ -64,7 +64,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({
 
   // Mappa i dispositivi realtime nel formato Device
   const realtimeDevices = useMemo(() => {
-    if (!realtimeData || realtimeData.length === 0) return [];
+    if (!realtimeData || !Array.isArray(realtimeData) || realtimeData.length === 0) return [];
     return realtimeData.map((d: any) => ({
       id: d.thing_key || d.device_id,
       name: d.name || `Dispositivo ${d.device_id}`,
@@ -88,9 +88,11 @@ export const DeviceList: React.FC<DeviceListProps> = ({
 
   // Filtra dispositivi con ricerca
   const filteredDevices = useMemo(() => {
-    if (!searchTerm.trim()) return actualDevices;
+    // Ensure actualDevices is always an array
+    const devicesArray = Array.isArray(actualDevices) ? actualDevices : [];
+    if (!searchTerm.trim()) return devicesArray;
     const term = searchTerm.toLowerCase();
-    return actualDevices.filter((d: any) => 
+    return devicesArray.filter((d: any) => 
       d.name?.toLowerCase().includes(term) || 
       d.serial_number?.toLowerCase().includes(term) ||
       d.thing_key?.toLowerCase().includes(term)

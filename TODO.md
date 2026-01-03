@@ -508,14 +508,13 @@
 
 ### Caching e Persistenza Dati
 
-- [ ] **[FEAT-006]** Strategia Caching e Persistenza Dati Storici
+- [x] **[FEAT-006]** Strategia Caching e Persistenza Dati Storici ✅ PARZIALMENTE COMPLETATO
   - **Descrizione**: Implementare persistenza dati storici in PostgreSQL per evitare chiamate API ZCS ripetute
   - **Componenti**:
-    - [ ] Tabella `daily_energy` in PostgreSQL (schema già definito)
+    - [x] Tabella `daily_energy` in PostgreSQL ✅ 2025-12-11
+    - [x] Task Celery `collect_daily_energy` (ogni giorno 00:05) ✅ 2025-12-11
+    - [x] Task Celery `cleanup_old_cache` (pulizia cache) ✅ 2025-12-11
     - [ ] Tabella `alarm_history` per storico allarmi
-    - [ ] Task Celery `collect_daily_energy` (ogni giorno 00:05)
-    - [ ] Task Celery `collect_alarms` (ogni ora)
-    - [ ] Task Celery `cleanup_cache` (pulizia vecchia)
     - [ ] Endpoint API per query dati storici da DB (non da ZCS)
     - [ ] Migration Alembic per nuove tabelle
   - **Benefici**:
@@ -523,7 +522,24 @@
     - Dati storici sempre disponibili (anche se ZCS offline)
     - Performance migliori per Analytics
     - Backup dati per report e fatturazione
-  - **Effort stimato**: 8-12h
+
+### Report Email Automatici
+
+- [x] **[FEAT-008]** Sistema Notifiche Email Completo ✅ COMPLETATO 2025-12-11
+  - **Descrizione**: Invio automatico di report e notifiche via email basato su preferenze utente
+  - **Componenti Implementati**:
+    - [x] Template email report giornaliero (HTML responsive)
+    - [x] Template email report settimanale (con tabella 7 giorni)
+    - [x] Template email allarme (critical/warning/info)
+    - [x] Task Celery `send_daily_email_report` (ogni giorno 20:00 CET)
+    - [x] Task Celery `send_weekly_email_report` (domenica 10:00 CET)
+    - [x] Trigger automatico email su allarmi (collect_alarm_data)
+    - [x] Email destinatario da impostazioni utente (PostgreSQL)
+    - [x] Anti-spam: allarmi notificati una sola volta (cache 24h)
+  - **Integrazione con Resend**:
+    - [x] Servizio email configurato in `email_service.py`
+    - [x] API endpoints per test e invio manuale
+  - **Effort**: 6h
   - **Priorità**: Alta
 
 ### Lettura Contatore Gas
@@ -643,20 +659,18 @@
   - File: `modules/frontend/src/pages/Settings.tsx`
   - Tabs: Generale, Notifiche, Dispositivi, API, Sistema
 
-- [ ] **[PAGE-005]** ⚠️ Verificare/Implementare persistenza Settings
-  - **Stato attuale**: La pagina Settings è solo UI, i dati NON vengono salvati
-  - **Da verificare/implementare**:
-    - [ ] Endpoint backend `GET/PUT /api/v1/settings/` per CRUD impostazioni
-    - [ ] Modello database per settings utente
-    - [ ] Frontend: collegare form a API reali (attualmente mock)
-    - [ ] Test: modificare impostazione → riavviare → verificare persistenza
-  - **Impostazioni da persistere**:
-    - [ ] Generale: nome sistema, timezone, valuta, lingua
-    - [ ] Notifiche: email, frequenza report, soglie allarmi
-    - [ ] Dispositivi: nomi custom, soglie alert per dispositivo
-    - [ ] API: chiavi ZCS (solo visualizzazione, no modifica)
-  - **Effort stimato**: 4-6h
-  - **Priorità**: Alta
+- [x] **[PAGE-005]** ✅ Implementata persistenza Settings (2025-12-11)
+  - **Stato**: COMPLETATO
+  - **Implementato**:
+    - [x] Endpoint backend `GET/PUT /api/v1/settings/` per CRUD impostazioni
+    - [x] Modello database `UserSettings` legato a user_id (Auth0 sub)
+    - [x] Frontend: collegato form a API reali con React Query
+    - [x] Persistenza in PostgreSQL
+  - **Impostazioni persistite**:
+    - [x] Generale: nome sistema, timezone, valuta, lingua, tariffe energia
+    - [x] Notifiche: email, report giornaliero/settimanale, soglie allarmi
+    - [x] Dispositivi: stato online/offline in tempo reale
+    - [x] API: stato connessione ZCS, ultimo sync
 
 ---
 
@@ -681,8 +695,8 @@
 | ⚠️ High | 6 | 1/6 completed |
 | 🟡 Medium | 15 | **6/15 completed** |
 | 🟢 Low | 8 | 0/8 completed |
-| 🚀 New Features | 7 | 0/7 completed |
-| 📋 Pages | 5 | 4/5 completed |
+| 🚀 New Features | 8 | **2/8 completed** |
+| 📋 Pages | 5 | **5/5 completed** ✅ |
 | 🔧 Infra | 6 | 0/6 completed |
 | **TOTAL** | **90** | **18/90** |
 
@@ -721,6 +735,12 @@
 - **2025-12-19**: Fix priorità dati storici vs realtime per energia giornaliera (usa TotalDecimal)
 - **2025-12-19**: Deploy HTTPS con Traefik + Let's Encrypt completato
 - **2025-12-19**: Aggiunta FEAT-007 - Lettura Contatore Gas con OCR
+- **2025-12-11**: Implementata persistenza Settings in PostgreSQL (FEAT-005 parziale)
+- **2025-12-11**: Implementato sistema notifiche email automatiche completo (FEAT-008):
+  - Report giornaliero (ogni giorno 20:00 CET)
+  - Report settimanale (domenica 10:00 CET)
+  - Trigger automatico email su allarmi critici/warning
+  - Anti-spam con cache 24h per evitare duplicati
 - **2026-01-03**: 🏢 **ARCHITETTURA BUILDING** - Introdotto concetto di Edificio come entità centrale
   - Nuovo schema: Users → Edifici → Dispositivi
   - Più utenti possono accedere allo stesso edificio

@@ -652,17 +652,49 @@ Se ci sono allarmi critici attivi, vedrai un banner rosso in alto con:
 
 ### 8.8 Notifiche Email
 
-Le notifiche email vengono inviate automaticamente per:
-- Allarmi critici (immediato)
-- Allarmi di attenzione (raggruppati)
-- Report giornaliero (se abilitato)
-- Report settimanale (se abilitato)
+SunPulse invia automaticamente email basate sulle tue preferenze configurate in **Impostazioni → Notifiche**.
 
-**Configurazione Email:**
+#### Tipi di Notifiche
+
+| Tipo | Descrizione | Tempistica |
+|------|-------------|------------|
+| **🔴 Allarmi Critici** | Problemi gravi che richiedono intervento immediato | Immediato (entro 30 secondi) |
+| **🟡 Avvisi** | Anomalie che richiedono attenzione | Immediato |
+| **📊 Report Giornaliero** | Riepilogo produzione, consumo e risparmio | Ogni giorno alle 20:00 |
+| **📈 Report Settimanale** | Analisi completa con grafico 7 giorni | Ogni domenica alle 10:00 |
+
+#### Contenuto Report Giornaliero
+
+L'email giornaliera include:
+- ⚡ Energia prodotta oggi (kWh)
+- 🏠 Energia consumata oggi (kWh)
+- ☀️ Autoconsumo (kWh)
+- 🔌 Prelevato dalla rete (kWh)
+- ⬆️ Immesso in rete (kWh)
+- 💰 Risparmio economico (€)
+
+#### Contenuto Report Settimanale
+
+L'email settimanale include:
+- 📊 Totali della settimana
+- 📈 Media giornaliera
+- 📋 Tabella dettaglio per ogni giorno
+- 💰 Risparmio totale settimanale (€)
+- 📊 Tasso di autoconsumo (%)
+
+#### Anti-Spam per Allarmi
+
+Il sistema evita di inviare email duplicate per lo stesso allarme:
+- Ogni allarme viene notificato **una sola volta**
+- Il "blocco" scade dopo **24 ore** (l'allarme può essere ri-notificato se ricompare)
+- Questo previene lo spam in caso di allarmi intermittenti
+
+#### Configurazione Email
+
 Vai su **Impostazioni → Notifiche** per configurare:
-- Indirizzo email destinatario
-- Tipi di allarmi da notificare
-- Frequenza report
+- 📧 **Indirizzo email** destinatario
+- 🔘 **On/Off** per ogni tipo di notifica
+- 🔋 **Soglie allarme** batteria
 
 ---
 
