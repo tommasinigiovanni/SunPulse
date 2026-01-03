@@ -138,20 +138,43 @@
 
 ## 🚀 NEW FEATURES
 
-### Scansione Bollette
+### Gestione Utenze Domestiche (Acqua, Luce, Gas)
 
-- [ ] **[FEAT-001]** Scansione e OCR bollette elettriche
-  - **Descrizione**: Permette all'utente di caricare foto/PDF delle bollette e estrarre automaticamente i dati
+- [ ] **[FEAT-007]** Modulo Gestione Utenze Domestiche
+  - **Descrizione**: Modulo completo per gestione utenze (💧 Acqua, ⚡ Luce, ⛽ Gas) con due funzionalità:
+  
+  #### 📄 Funzionalità 1: Analisi e Archiviazione Fatture
+  - **Descrizione**: Caricamento, OCR e stoccaggio delle bollette per tutte le utenze
   - **Componenti**:
-    - [ ] Upload immagine/PDF (frontend)
+    - [ ] Upload immagine/PDF fattura (frontend)
     - [ ] Servizio OCR (Tesseract / Google Vision / AWS Textract)
-    - [ ] Parser per estrarre dati strutturati (consumo kWh, costi, periodo, fornitore)
-    - [ ] Modello database per bollette
+    - [ ] Parser per estrarre dati strutturati per tipo utenza:
+      - [ ] Luce: consumo kWh, fasce F1/F2/F3, potenza, costi
+      - [ ] Gas: consumo Smc, costi, periodo
+      - [ ] Acqua: consumo m³, costi, periodo
+    - [ ] Modello database `utility_bills` (multi-utenza)
     - [ ] API endpoints CRUD bollette
-    - [ ] Pagina storico bollette con grafici
-    - [ ] Confronto bollette vs produzione fotovoltaico
-  - **Effort stimato**: 16-24h
-  - **Priorità**: Media
+    - [ ] Pagina storico bollette con grafici per utenza
+    - [ ] Confronto bollette luce vs produzione fotovoltaico
+  - **Effort stimato**: 16-20h
+  
+  #### 📷 Funzionalità 2: Autolettura Contatore tramite Foto
+  - **Descrizione**: Registrazione letture contatori (manuale o OCR da foto)
+  - **Componenti**:
+    - [ ] Form inserimento manuale con validazione
+    - [ ] Upload foto contatore con preview e crop
+    - [ ] OCR per riconoscimento cifre display
+    - [ ] Conferma/correzione valore rilevato
+    - [ ] Modello database `meter_readings` (multi-utenza)
+    - [ ] API endpoints CRUD letture
+    - [ ] Storico letture con tabella e grafici
+    - [ ] Calcolo consumo tra letture
+    - [ ] Alert se lettura < precedente
+    - [ ] Export CSV
+  - **Effort stimato**: 12-16h
+  
+  - **Effort totale modulo**: 28-36h
+  - **Priorità**: Alta
 
 ### Status Page
 
@@ -245,59 +268,52 @@
   - **Effort stimato**: 8-12h
   - **Priorità**: Alta
 
-### Lettura Contatore Gas
+### Analytics Incrociata Multi-Sorgente
 
-- [ ] **[FEAT-007]** Lettura Contatore Gas con OCR
-  - **Descrizione**: Permette all'utente di registrare le letture del contatore gas, sia manualmente che tramite riconoscimento automatico da foto (OCR)
-  - **Modalità di input**:
-    - [ ] Inserimento manuale: form con valore lettura, data, note
-    - [ ] OCR da foto: upload immagine del contatore, riconoscimento automatico cifre
-  - **Componenti Backend**:
-    - [ ] Modello database `MeterReading` (gas, estendibile a luce/acqua)
-    - [ ] Servizio OCR (`TesseractOCR` o `Google Cloud Vision`)
-    - [ ] Pre-processing immagine (crop, contrast, threshold)
-    - [ ] Validazione lettura (non può essere < precedente)
-    - [ ] API endpoints CRUD letture
-  - **Componenti Frontend**:
-    - [ ] Nuova pagina `/meters` (Contatori)
-    - [ ] Form inserimento manuale con validazione
-    - [ ] Upload foto con preview e crop
-    - [ ] Conferma/correzione valore OCR
-    - [ ] Storico letture con tabella e grafici
-    - [ ] Calcolo consumo tra letture
-    - [ ] Export dati CSV
+- [ ] **[FEAT-008]** Dashboard Analytics Incrociata
+  - **Descrizione**: Dashboard avanzata che incrocia e correla tutti i dati disponibili per insights completi
+  - **Sorgenti dati integrate**:
+    - [ ] ☀️ Fotovoltaico (produzione, consumo, batteria, import/export)
+    - [ ] ⚡ Bollette Luce (consumi kWh, costi, fasce orarie)
+    - [ ] ⛽ Bollette Gas (consumi Smc, costi)
+    - [ ] 💧 Bollette Acqua (consumi m³, costi)
+    - [ ] 📷 Autoletture contatori
+    - [ ] 🌡️ Temperatura esterna e dati meteo
+  - **Grafici e Correlazioni**:
+    - [ ] 🌡️ Correlazione Consumo Gas vs Temperatura (scatter + trend)
+    - [ ] ☀️ Produzione FV vs Temperatura/Irraggiamento
+    - [ ] 📊 Confronto Bollette vs Autoletture vs Dati Reali FV
+    - [ ] 💰 Trend Costi Totali Utenze (stacked area chart)
+    - [ ] ⚡ Bilancio Energetico Completo (Sankey diagram)
+    - [ ] 🔥 Heatmap Consumi Orari Settimanali
+  - **Integrazione Meteo**:
+    - [ ] API meteo (OpenWeatherMap / Open-Meteo)
+    - [ ] Tabella `weather_data` per storico
+    - [ ] Task Celery raccolta dati meteo (ogni ora)
+    - [ ] Calcolo gradi-giorno per correlazioni gas
+  - **Insight Automatici**:
+    - [ ] Anomalie consumo vs temperatura
+    - [ ] Performance FV vs condizioni meteo
+    - [ ] Discrepanze bollette vs dati reali
+    - [ ] Suggerimenti ottimizzazione fasce orarie
+    - [ ] Previsioni consumo basate su meteo
   - **API Endpoints**:
-    - [ ] `POST /api/v1/meters/readings` - Nuova lettura manuale
-    - [ ] `POST /api/v1/meters/readings/ocr` - Upload foto e OCR
-    - [ ] `GET /api/v1/meters/readings` - Lista letture
-    - [ ] `GET /api/v1/meters/readings/{id}` - Dettaglio lettura
-    - [ ] `PUT /api/v1/meters/readings/{id}` - Modifica lettura
-    - [ ] `DELETE /api/v1/meters/readings/{id}` - Elimina lettura
-    - [ ] `GET /api/v1/meters/consumption` - Calcolo consumi
-  - **Modello Dati**:
-    ```sql
-    meter_readings (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER REFERENCES users(id),
-      meter_type VARCHAR(20) NOT NULL,  -- 'gas', 'electricity', 'water'
-      reading_value DECIMAL(12,3) NOT NULL,
-      reading_date DATE NOT NULL,
-      reading_time TIME,
-      source VARCHAR(20) NOT NULL,      -- 'manual', 'ocr'
-      image_path VARCHAR(500),
-      ocr_confidence DECIMAL(3,2),
-      notes TEXT,
-      created_at TIMESTAMP DEFAULT NOW(),
-      updated_at TIMESTAMP,
-      UNIQUE(user_id, meter_type, reading_date)
-    );
-    ```
-  - **Opzioni OCR**:
-    - Tesseract (self-hosted, gratuito)
-    - Google Cloud Vision (più preciso, ~€1.50/1000 immagini)
-    - EasyOCR (Python, buono per cifre)
-  - **Effort stimato**: 12-16h
+    - [ ] `GET /api/v1/analytics/dashboard` - KPI aggregati
+    - [ ] `GET /api/v1/analytics/correlation/*` - Correlazioni
+    - [ ] `GET /api/v1/analytics/compare/*` - Confronti
+    - [ ] `GET /api/v1/analytics/trends/*` - Trend
+    - [ ] `GET /api/v1/analytics/forecast/*` - Previsioni
+    - [ ] `GET /api/v1/weather/*` - Dati meteo
+    - [ ] `GET /api/v1/analytics/export/*` - Export report
+  - **Frontend**:
+    - [ ] Nuova pagina `/analytics/advanced`
+    - [ ] Grafici avanzati (Apache ECharts / Plotly)
+    - [ ] Selettore periodo e filtri
+    - [ ] Card insight automatici
+    - [ ] Export PDF/CSV
+  - **Effort stimato**: 36-44h
   - **Priorità**: Media-Alta
+  - **Dipendenze**: FEAT-007 completata, API meteo configurata
 
 ### Audit Log
 
@@ -398,10 +414,18 @@
 | ⚠️ High | 6 | 1/6 completed |
 | 🟡 Medium | 15 | **6/15 completed** |
 | 🟢 Low | 8 | 0/8 completed |
-| 🚀 New Features | 7 | 0/7 completed |
+| 🚀 New Features | 8 | 0/8 completed |
 | 📋 Pages | 5 | 4/5 completed |
 | 🔧 Infra | 6 | 0/6 completed |
-| **TOTAL** | **54** | **18/54** |
+| **TOTAL** | **55** | **18/55** |
+
+### 🏠 Modulo Utenze Domestiche (FEAT-007 + FEAT-008)
+| Componente | Effort | Priorità |
+|------------|--------|----------|
+| Analisi Fatture (Acqua/Luce/Gas) | 16-20h | Alta |
+| Autolettura Contatori OCR | 12-16h | Alta |
+| Analytics Incrociata Multi-Sorgente | 36-44h | Media-Alta |
+| **Totale Modulo** | **64-80h** | - |
 
 ---
 

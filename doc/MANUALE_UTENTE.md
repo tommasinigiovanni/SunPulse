@@ -15,7 +15,10 @@
 5. [Analytics e Analisi](#5-analytics-e-analisi)
 6. [Allarmi e Notifiche](#6-allarmi-e-notifiche)
 7. [Impostazioni](#7-impostazioni)
-8. [Lettura Contatore Gas](#8-lettura-contatore-gas) ⛽ *Coming Soon*
+8. [Gestione Utenze Domestiche](#8-gestione-utenze-domestiche) 🏠 *Coming Soon*
+   - [8.1 Analisi e Archiviazione Fatture](#81-analisi-e-archiviazione-fatture) 📄
+   - [8.2 Autolettura Contatore tramite Foto](#82-autolettura-contatore-tramite-foto) 📷
+   - [8.3 Analytics Incrociata](#83-analytics-incrociata) 📊
 9. [Architettura Tecnica](#9-architettura-tecnica)
 10. [API ZCS Azzurro](#10-api-zcs-azzurro)
 11. [Troubleshooting](#11-troubleshooting)
@@ -524,24 +527,96 @@ Dopo aver modificato le impostazioni:
 
 ---
 
-## 8. Lettura Contatore Gas
+## 8. Gestione Utenze Domestiche
 
-> ⛽ **Coming Soon** - Funzionalità in sviluppo
+> 🏠 **Coming Soon** - Funzionalità in sviluppo
 
-### 8.1 Panoramica
+SunPulse offre un modulo completo per la gestione delle utenze domestiche (**Acqua 💧**, **Luce ⚡**, **Gas ⛽**) con due funzionalità principali:
 
-SunPulse permette di registrare le letture del contatore gas per monitorare i consumi domestici. Le letture possono essere inserite in due modi:
+1. **📄 Analisi e Archiviazione Fatture** - Caricamento, OCR e stoccaggio delle bollette
+2. **📷 Autolettura Contatore tramite Foto** - Lettura OCR dei contatori per l'autolettura
+
+---
+
+### 8.1 Analisi e Archiviazione Fatture
+
+Questa funzionalità permette di caricare le bollette delle utenze domestiche, estrarre automaticamente i dati tramite OCR e archiviarli per analisi e confronti.
+
+#### Utenze Supportate
+
+| Utenza | Dati Estratti | Unità |
+|--------|---------------|-------|
+| 💧 **Acqua** | Consumo, Costo, Periodo, Fornitore | m³, € |
+| ⚡ **Luce** | Consumo (F1/F2/F3), Costo, Potenza, Periodo | kWh, €, kW |
+| ⛽ **Gas** | Consumo, Costo, Periodo, Fornitore | Smc, € |
+
+#### Come Caricare una Fattura
+
+1. Vai alla pagina **Utenze** dal menu laterale
+2. Clicca su **Nuova Fattura**
+3. Seleziona il tipo di utenza (Acqua, Luce o Gas)
+4. Carica la foto o il PDF della bolletta
+5. Il sistema estrae automaticamente i dati tramite OCR
+6. Verifica e correggi eventuali errori di riconoscimento
+7. Clicca **Salva**
+
+#### Dati Estratti Automaticamente
+
+**Per bollette Luce ⚡:**
+- Consumo totale (kWh)
+- Suddivisione per fasce (F1, F2, F3)
+- Potenza impegnata (kW)
+- Costo totale (€)
+- Periodo di fatturazione
+- Fornitore
+
+**Per bollette Gas ⛽:**
+- Consumo totale (Smc)
+- Costo totale (€)
+- Periodo di fatturazione
+- Fornitore
+
+**Per bollette Acqua 💧:**
+- Consumo totale (m³)
+- Costo totale (€)
+- Periodo di fatturazione
+- Gestore
+
+#### Storico Fatture
+
+Nella sezione **Storico Fatture** puoi:
+- 📊 Vedere il grafico dei costi nel tempo per ogni utenza
+- 📋 Consultare la tabella delle fatture archiviate
+- 📈 Confrontare consumi tra periodi diversi
+- 💡 Per la luce: confrontare bollette vs produzione fotovoltaica
+- 📥 Esportare i dati in CSV
+
+---
+
+### 8.2 Autolettura Contatore tramite Foto
+
+Questa funzionalità permette di registrare le letture dei contatori domestici per l'autolettura da comunicare al gestore.
+
+#### Contatori Supportati
+
+| Utenza | Tipo Contatore | Unità |
+|--------|----------------|-------|
+| 💧 **Acqua** | Contatore volumetrico | m³ |
+| ⚡ **Luce** | Contatore elettronico | kWh |
+| ⛽ **Gas** | Contatore meccanico/elettronico | Smc (m³) |
+
+#### Modalità di Inserimento
 
 | Modalità | Descrizione | Quando usarla |
 |----------|-------------|---------------|
 | **Manuale** | Inserisci il valore letto sul contatore | Sempre affidabile |
 | **OCR da Foto** | Scatta una foto al contatore | Più veloce, evita errori di trascrizione |
 
-### 8.2 Inserimento Manuale
+#### Inserimento Manuale
 
 1. Vai alla pagina **Contatori** dal menu laterale
 2. Clicca su **Nuova Lettura**
-3. Seleziona **Gas** come tipo contatore
+3. Seleziona il tipo di contatore (Acqua, Luce o Gas)
 4. Inserisci il valore letto (es. `12345.678`)
 5. Seleziona la data della lettura
 6. Aggiungi eventuali note
@@ -549,30 +624,32 @@ SunPulse permette di registrare le letture del contatore gas per monitorare i co
 
 > ⚠️ **Nota**: Il sistema verifica che la nuova lettura sia maggiore della precedente
 
-### 8.3 Lettura con OCR
+#### Lettura con OCR (Foto)
 
 1. Vai alla pagina **Contatori**
-2. Clicca su **Scatta Foto** o **Carica Immagine**
-3. Inquadra il display del contatore
-4. Il sistema riconosce automaticamente le cifre
-5. Verifica il valore rilevato e conferma
-6. Se necessario, correggi manualmente
+2. Seleziona il tipo di contatore
+3. Clicca su **📷 Scatta Foto** o **📁 Carica Immagine**
+4. Inquadra il display del contatore
+5. Il sistema riconosce automaticamente le cifre
+6. Verifica il valore rilevato e conferma
+7. Se necessario, correggi manualmente
 
 **Suggerimenti per foto migliori:**
 - 📷 Buona illuminazione (no riflessi)
 - 🔍 Inquadratura frontale del display
 - 📏 Avvicinati per vedere bene le cifre
 - 🧹 Pulisci il vetro del contatore se sporco
+- 📐 Tieni il telefono parallelo al display
 
-### 8.4 Storico e Consumi
+#### Storico Letture e Consumi
 
 Nella sezione **Storico Letture** puoi:
-- 📊 Vedere il grafico dei consumi nel tempo
+- 📊 Vedere il grafico dei consumi nel tempo per ogni utenza
 - 📋 Consultare la tabella delle letture
 - 📈 Calcolare il consumo tra due date
 - 📥 Esportare i dati in CSV
 
-### 8.5 Calcolo Consumo
+#### Calcolo Consumo
 
 Il consumo viene calcolato automaticamente:
 
@@ -580,10 +657,64 @@ Il consumo viene calcolato automaticamente:
 Consumo = Lettura Attuale - Lettura Precedente
 ```
 
-Esempio:
+**Esempio Gas:**
 - Lettura 1 Dicembre: 12.345 m³
 - Lettura 1 Gennaio: 12.489 m³
 - **Consumo Dicembre**: 144 m³ (12.489 - 12.345)
+
+---
+
+### 8.3 Analytics Incrociata
+
+SunPulse incrocia automaticamente tutti i dati disponibili per fornire insights avanzati:
+
+#### Sorgenti Dati Integrate
+
+| Sorgente | Dati | Aggiornamento |
+|----------|------|---------------|
+| ☀️ **Fotovoltaico** | Produzione, consumo, batteria | Real-time |
+| ⚡ **Bollette Luce** | Consumi kWh, costi € | Mensile |
+| ⛽ **Bollette Gas** | Consumi Smc, costi € | Mensile |
+| 💧 **Bollette Acqua** | Consumi m³, costi € | Trimestrale |
+| 📷 **Autoletture** | Letture contatori | Su richiesta |
+| 🌡️ **Temperatura** | Meteo e temperatura | Oraria |
+
+#### Grafici Disponibili
+
+1. **🌡️ Correlazione Gas vs Temperatura**
+   - Mostra come il consumo di gas varia in base alla temperatura esterna
+   - Identifica anomalie (alto consumo con temperature miti)
+
+2. **☀️ Produzione FV vs Meteo**
+   - Correla produzione solare con condizioni meteo
+   - Verifica efficienza impianto
+
+3. **📊 Confronto Bollette vs Dati Reali**
+   - Confronta quanto fatturato vs quanto misurato
+   - Identifica discrepanze nelle bollette
+
+4. **💰 Trend Costi Utenze**
+   - Andamento costi mensili per tutte le utenze
+   - Confronto anno su anno
+
+5. **⚡ Bilancio Energetico Completo**
+   - Diagramma Sankey con flussi energetici
+   - Da dove viene e dove va l'energia
+
+6. **🔥 Heatmap Consumi Settimanali**
+   - Mappa di calore dei consumi per ora e giorno
+   - Identifica pattern e picchi
+
+#### Insight Automatici
+
+Il sistema genera suggerimenti basati sui dati:
+
+| Esempio Insight | Azione Suggerita |
+|-----------------|------------------|
+| "Consumo gas +30% rispetto a stesso periodo anno scorso" | "Verificare efficienza caldaia" |
+| "70% consumo luce in fascia F1" | "Spostare carichi in ore solari" |
+| "Bolletta non corrisponde a dati FV" | "Verificare fatturazione" |
+| "Prevista ondata di freddo" | "Stimato consumo gas +40%" |
 
 ---
 
