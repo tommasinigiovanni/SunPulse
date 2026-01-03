@@ -278,7 +278,7 @@ export const Settings: React.FC = () => {
           >
             {devicesLoading ? (
               <Skeleton active paragraph={{ rows: 2 }} />
-            ) : devices.length === 0 ? (
+            ) : !Array.isArray(devices) || devices.length === 0 ? (
               <Alert message="Nessun dispositivo configurato" type="info" />
             ) : (
               <Space direction="vertical" style={{ width: '100%' }}>

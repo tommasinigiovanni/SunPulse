@@ -74,8 +74,10 @@ api_router.include_router(
     tags=["Tasks"],
     dependencies=admin_dependency
 )
+
+# Audit - accessible to all authenticated users (they only see their own data)
 api_router.include_router(
     audit.router, 
     tags=["Audit"],
-    dependencies=admin_dependency
+    dependencies=auth_dependency  # Changed from admin_dependency
 )

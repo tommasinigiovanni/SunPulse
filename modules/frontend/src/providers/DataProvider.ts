@@ -36,10 +36,24 @@ export const dataProvider: DataProvider = {
     try {
       const { data } = await axiosInstance.get(url, { params });
       
+      // Ensure data is always an array
+      let resultData = data.items || data.data || data;
+      if (!Array.isArray(resultData)) {
+        // If it's an object with data inside, try to extract it
+        if (resultData && typeof resultData === 'object' && resultData.devices) {
+          resultData = resultData.devices;
+        } else if (resultData && typeof resultData === 'object') {
+          // Wrap single object in array or return empty array
+          resultData = resultData.id ? [resultData] : [];
+        } else {
+          resultData = [];
+        }
+      }
+      
       return {
-        data: data.items || data.data || data,
-        total: data.total || data.count || (Array.isArray(data) ? data.length : 1),
-        totalPages: data.pages || Math.ceil((data.total || 0) / (pagination?.pageSize || 10)),
+        data: resultData,
+        total: data.total || data.count || resultData.length,
+        totalPages: data.pages || Math.ceil((data.total || resultData.length) / (pagination?.pageSize || 10)),
       };
     } catch (error) {
       console.error(`Errore nel recupero di ${resource}:`, error);

@@ -10,7 +10,7 @@ import uvicorn
 
 from .config.settings import get_settings
 from .api.v1.router import api_router
-from .services.database import init_db, get_db_session
+from .services.database import init_db, get_db_session, get_async_engine
 from .services.audit_service import get_audit_service
 from .middleware.audit_middleware import AuditMiddleware
 from .utils.health import HealthChecker
@@ -90,9 +90,13 @@ async def startup_event():
     """Inizializzazione all'avvio dell'applicazione"""
     logger.info("Avvio SunPulse Backend...")
     
-    # Inizializza database
+    # Inizializza database connections (Redis, asyncpg pool)
     await init_db()
-    logger.info("Database inizializzato")
+    logger.info("Database connections inizializzate")
+    
+    # Inizializza SQLAlchemy engine e crea tabelle mancanti
+    await get_async_engine()
+    logger.info("SQLAlchemy engine e tabelle inizializzate")
 
 @app.on_event("shutdown")
 async def shutdown_event():
