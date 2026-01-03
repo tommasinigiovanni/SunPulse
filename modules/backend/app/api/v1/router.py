@@ -5,7 +5,7 @@ JWT Authentication enabled for protected endpoints.
 Auth0 API Audience: AUTH0_API_AUDIENCE env variable (default: https://sunpulse-api)
 """
 from fastapi import APIRouter, Depends
-from .endpoints import health, devices, data, alarms, tasks, notifications, device_management, websocket, settings
+from .endpoints import health, devices, data, alarms, tasks, notifications, device_management, websocket, settings, buildings, onboarding
 from . import audit
 from ...auth import get_current_user, require_auth
 
@@ -55,6 +55,18 @@ api_router.include_router(
     settings.router, 
     prefix="/settings", 
     tags=["Settings"],
+    dependencies=auth_dependency
+)
+api_router.include_router(
+    buildings.router, 
+    prefix="/buildings", 
+    tags=["Buildings"],
+    dependencies=auth_dependency
+)
+api_router.include_router(
+    onboarding.router, 
+    prefix="/onboarding", 
+    tags=["Onboarding"],
     dependencies=auth_dependency
 )
 api_router.include_router(

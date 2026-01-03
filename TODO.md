@@ -13,35 +13,40 @@
 
 ### Backend - Database & Models
 
-- [ ] **[BUILD-001]** Creare migration Alembic per tabella `buildings`
+- [x] **[BUILD-001]** Creare migration per tabella `buildings` ✅ 2026-01-03
   - Campi: id, name, address, address_components (JSONB), place_id, latitude, longitude, timezone, created_at, updated_at, created_by
+  - File: `modules/postgres/init/02-buildings.sql`
   - **Effort**: 1h
   - **Priorità**: 🔴 Critico
 
-- [ ] **[BUILD-002]** Creare migration per tabella `user_buildings` (relazione N:M)
+- [x] **[BUILD-002]** Creare migration per tabella `user_buildings` (relazione N:M) ✅ 2026-01-03
   - Campi: id, user_id, building_id, role ('owner', 'admin', 'member', 'viewer'), invited_by, joined_at
+  - File: `modules/postgres/init/02-buildings.sql`
   - **Effort**: 1h
   - **Priorità**: 🔴 Critico
 
-- [ ] **[BUILD-003]** Aggiornare tabella `devices` con FK `building_id`
-  - Aggiungere colonna building_id REFERENCES buildings(id)
+- [x] **[BUILD-003]** Creare tabella `building_devices` per associazione edificio-dispositivo ✅ 2026-01-03
+  - Campi: id, building_id, thing_key, name, device_type, status, last_seen
   - Migrare dispositivi esistenti (creare building di default)
   - **Effort**: 2h
   - **Priorità**: 🔴 Critico
 
-- [ ] **[BUILD-004]** Creare migration per tabella `building_weather`
+- [x] **[BUILD-004]** Creare migration per tabella `building_weather` ✅ 2026-01-03
   - Campi: id, building_id, temperature, feels_like, humidity, pressure, wind_speed, weather_condition, weather_icon, sunrise, sunset, fetched_at
+  - File: `modules/postgres/init/02-buildings.sql`
   - **Effort**: 1h
   - **Priorità**: ⚠️ Alto
 
-- [ ] **[BUILD-005]** Creare modelli SQLAlchemy per Building, UserBuilding, BuildingWeather
+- [x] **[BUILD-005]** Creare modelli SQLAlchemy per Building, UserBuilding, BuildingWeather ✅ 2026-01-03
   - File: `modules/backend/app/models/building.py`
+  - Include anche: BuildingDevice, UserOnboarding
   - **Effort**: 2h
   - **Priorità**: 🔴 Critico
 
 ### Backend - API Endpoints
 
-- [ ] **[BUILD-006]** Endpoint CRUD Buildings
+- [x] **[BUILD-006]** Endpoint CRUD Buildings ✅ 2026-01-03
+  - File: `modules/backend/app/api/v1/endpoints/buildings.py`
   - `GET /api/v1/buildings/` - Lista edifici dell'utente
   - `POST /api/v1/buildings/` - Crea nuovo edificio
   - `GET /api/v1/buildings/{id}` - Dettaglio edificio
@@ -51,14 +56,14 @@
   - **Effort**: 4h
   - **Priorità**: 🔴 Critico
 
-- [ ] **[BUILD-007]** Endpoint gestione dispositivi per edificio
+- [x] **[BUILD-007]** Endpoint gestione dispositivi per edificio ✅ 2026-01-03
   - `GET /api/v1/buildings/{id}/devices` - Lista dispositivi
   - `POST /api/v1/buildings/{id}/devices` - Associa dispositivo
   - `DELETE /api/v1/buildings/{id}/devices/{did}` - Rimuovi dispositivo
   - **Effort**: 2h
   - **Priorità**: ⚠️ Alto
 
-- [ ] **[BUILD-008]** Endpoint gestione membri edificio
+- [x] **[BUILD-008]** Endpoint gestione membri edificio ✅ 2026-01-03
   - `GET /api/v1/buildings/{id}/members` - Lista membri
   - `POST /api/v1/buildings/{id}/members` - Invita utente
   - `DELETE /api/v1/buildings/{id}/members/{uid}` - Rimuovi membro
@@ -66,34 +71,37 @@
   - **Effort**: 3h
   - **Priorità**: 🟡 Medio
 
-- [ ] **[BUILD-009]** Endpoint Address Autocomplete (Google Places)
-  - `GET /api/v1/address/autocomplete?q=...` - Ricerca indirizzi
+- [x] **[BUILD-009]** Endpoint Address Autocomplete (Google Places) ✅ 2026-01-03
+  - File: `modules/backend/app/services/google_places_service.py`
+  - `GET /api/v1/buildings/address/autocomplete?q=...` - Ricerca indirizzi
   - `GET /api/v1/address/details/{place_id}` - Dettagli + coordinate
   - Integrazione Google Places API
   - File: `modules/backend/app/api/v1/endpoints/address.py`
   - **Effort**: 3h
   - **Priorità**: 🔴 Critico
 
-- [ ] **[BUILD-010]** Endpoint Weather per edificio
+- [x] **[BUILD-010]** Endpoint Weather per edificio ✅ 2026-01-03
   - `GET /api/v1/buildings/{id}/weather` - Dati meteo attuali
   - `GET /api/v1/buildings/{id}/weather/history` - Storico meteo
+  - `POST /api/v1/buildings/{id}/weather/refresh` - Forza aggiornamento
   - **Effort**: 2h
   - **Priorità**: ⚠️ Alto
 
 ### Backend - Services
 
-- [ ] **[BUILD-011]** Creare WeatherService
+- [x] **[BUILD-011]** Creare WeatherService ✅ 2026-01-03
+  - File: `modules/backend/app/services/weather_service.py`
   - Supporto OpenWeatherMap e WeatherAPI
   - Fetch dati meteo da coordinate GPS
-  - Caching dati meteo in Redis (TTL 15 min)
   - File: `modules/backend/app/services/weather_service.py`
   - **Effort**: 4h
   - **Priorità**: ⚠️ Alto
 
-- [ ] **[BUILD-012]** Creare GooglePlacesService
+- [x] **[BUILD-012]** Creare GooglePlacesService ✅ 2026-01-03
+  - File: `modules/backend/app/services/google_places_service.py`
   - Autocomplete indirizzi
   - Geocoding (indirizzo → coordinate)
-  - File: `modules/backend/app/services/google_places_service.py`
+  - Get timezone da coordinate
   - **Effort**: 3h
   - **Priorità**: 🔴 Critico
 
@@ -182,24 +190,27 @@
 
 ### Wizard di Onboarding
 
-- [ ] **[WIZARD-001]** Creare migration per tabella `user_onboarding`
-  - Campi: id, user_id, current_step, status, building_id, completed_at, created_at, updated_at
+- [x] **[WIZARD-001]** Creare migration per tabella `user_onboarding` ✅ 2026-01-03
+  - File: `modules/postgres/init/02-buildings.sql`
+  - Campi: id, user_id, current_step, status, building_id, step_data (JSONB), completed_at, created_at, updated_at
   - **Effort**: 0.5h
   - **Priorità**: 🔴 Critico
 
-- [ ] **[WIZARD-002]** Creare modello SQLAlchemy per UserOnboarding
-  - File: `modules/backend/app/models/onboarding.py`
+- [x] **[WIZARD-002]** Creare modello SQLAlchemy per UserOnboarding ✅ 2026-01-03
+  - File: `modules/backend/app/models/building.py` (incluso con Building)
   - **Effort**: 0.5h
   - **Priorità**: 🔴 Critico
 
-- [ ] **[WIZARD-003]** Creare OnboardingService
+- [x] **[WIZARD-003]** Creare OnboardingService ✅ 2026-01-03
+  - File: `modules/backend/app/services/onboarding_service.py`
   - Logica per gestione stato wizard
   - Validazione dispositivi via API ZCS
   - File: `modules/backend/app/services/onboarding_service.py`
   - **Effort**: 2h
   - **Priorità**: 🔴 Critico
 
-- [ ] **[WIZARD-004]** Endpoint API Onboarding
+- [x] **[WIZARD-004]** Endpoint API Onboarding ✅ 2026-01-03
+  - File: `modules/backend/app/api/v1/endpoints/onboarding.py`
   - `GET /api/v1/onboarding/status` - Stato wizard utente
   - `PUT /api/v1/onboarding/step/{step}` - Salva progresso step
   - `POST /api/v1/onboarding/complete` - Marca completato
@@ -704,9 +715,9 @@
 
 | Categoria | Task | Effort Stimato |
 |-----------|------|----------------|
-| Database & Models | BUILD-001 → BUILD-005 | ~7h |
-| API Endpoints | BUILD-006 → BUILD-010 | ~14h |
-| Services | BUILD-011 → BUILD-014 | ~12h |
+| Database & Models | BUILD-001 → BUILD-005 | ✅ 5/5 completati |
+| API Endpoints | BUILD-006 → BUILD-010 | ✅ 5/5 completati |
+| Services | BUILD-011 → BUILD-014 | ✅ 2/4 completati |
 | Frontend | BUILD-015 → BUILD-020 | ~23h |
 | Configurazione | BUILD-021 → BUILD-023 | ~2h |
 | **TOTALE** | **23 task** | **~58h** |
@@ -715,9 +726,9 @@
 
 | Categoria | Task | Effort Stimato |
 |-----------|------|----------------|
-| Database & Models | WIZARD-001, WIZARD-002 | ~1h |
-| Backend Services | WIZARD-003, WIZARD-004 | ~5h |
-| Frontend Components | WIZARD-005 → WIZARD-010 | ~16h |
+| Database & Models | WIZARD-001, WIZARD-002 | ✅ 2/2 completati |
+| Backend Services | WIZARD-003, WIZARD-004 | ✅ 2/2 completati |
+| Frontend Components | WIZARD-005 → WIZARD-010 | 0/6 completati |
 | Hooks & Routing | WIZARD-011 → WIZARD-013 | ~4h |
 | **TOTALE** | **13 task** | **~26h** |
 
