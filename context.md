@@ -77,6 +77,112 @@ Quando viene creato un edificio, viene attivato un task Celery che:
 
 ---
 
+## 1.2 Wizard di Onboarding
+
+### Panoramica
+
+Al primo accesso, l'utente viene guidato attraverso un **wizard step-by-step** per configurare il sistema. Il wizard è obbligatorio per i nuovi utenti senza edifici configurati.
+
+### Flusso Wizard
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     STEP 1: BENVENUTO                           │
+│  "Benvenuto in SunPulse! Configuriamo il tuo impianto"          │
+│  • Breve intro alle funzionalità                                │
+│  • CTA: "Inizia configurazione"                                 │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   STEP 2: CREA EDIFICIO                         │
+│  • Campo: Nome edificio (es: "Casa Principale")                 │
+│  • Campo: Indirizzo (Google Places Autocomplete)                │
+│  • Preview: Mappa con marker sulla posizione                    │
+│  • Auto-detect: Timezone dall'indirizzo                         │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                 STEP 3: AGGIUNGI DISPOSITIVI                    │
+│  • Campo: Thing Key dispositivo ZCS (es: ZE1ES330J9E558)        │
+│  • Campo: Nome dispositivo (es: "Inverter Tetto Sud")           │
+│  • Pulsante: "+ Aggiungi altro dispositivo"                     │
+│  • Lista: Dispositivi aggiunti con possibilità di rimuovere     │
+│  • Validazione: Verifica connessione API ZCS                    │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              STEP 4: CONFIGURA NOTIFICHE (Opzionale)            │
+│  • Campo: Email per notifiche                                   │
+│  • Toggle: Allarmi critici (default: ON)                        │
+│  • Toggle: Report giornaliero (default: OFF)                    │
+│  • Toggle: Report settimanale (default: ON)                     │
+│  • Skip: "Configura dopo" link                                  │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   STEP 5: RIEPILOGO                             │
+│  ✅ Edificio: "Casa Principale" - Via Roma 1, Milano            │
+│  ✅ Dispositivi: 2 configurati                                   │
+│     • Inverter Tetto Sud (ZE1ES330J9E558)                       │
+│     • Batteria Garage (ZE1BAT123456)                            │
+│  ✅ Notifiche: Email configurata                                 │
+│  ✅ Meteo: Attivo per Milano (45.46°N, 9.19°E)                  │
+│                                                                  │
+│  CTA: "Vai alla Dashboard" 🚀                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Stati del Wizard
+
+| Stato | Descrizione | Azione |
+|-------|-------------|--------|
+| `not_started` | Utente appena registrato | Mostra wizard |
+| `in_progress` | Wizard iniziato ma non completato | Riprende dallo step corrente |
+| `completed` | Wizard completato | Vai direttamente alla Dashboard |
+| `skipped` | Utente ha saltato (solo se già ha edifici) | Vai alla Dashboard |
+
+### Persistenza Progresso
+
+Il progresso del wizard viene salvato in `user_onboarding`:
+
+```sql
+user_onboarding (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) UNIQUE,
+  current_step INTEGER DEFAULT 1,
+  status VARCHAR(20) DEFAULT 'not_started',  -- not_started, in_progress, completed, skipped
+  building_id INTEGER REFERENCES buildings(id),  -- edificio creato durante wizard
+  completed_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP
+)
+```
+
+### Componenti UI
+
+| Componente | Descrizione |
+|------------|-------------|
+| `WizardContainer` | Layout con stepper, progress bar, navigazione |
+| `WizardStep` | Wrapper per singolo step con validazione |
+| `StepWelcome` | Intro e CTA iniziale |
+| `StepBuilding` | Form creazione edificio con mappa |
+| `StepDevices` | Form aggiunta dispositivi con validazione |
+| `StepNotifications` | Configurazione notifiche (opzionale) |
+| `StepSummary` | Riepilogo finale e CTA dashboard |
+| `WizardProgress` | Barra progresso con step indicator |
+
+### API Endpoints Wizard
+
+```
+GET  /api/v1/onboarding/status           # Stato wizard utente
+PUT  /api/v1/onboarding/step/{step}      # Salva progresso step
+POST /api/v1/onboarding/complete         # Marca wizard come completato
+POST /api/v1/onboarding/skip             # Salta wizard (se permesso)
+POST /api/v1/onboarding/validate-device  # Valida thing_key dispositivo
+```
+
+---
+
 ## 2. Stato Attuale
 
 ### Fase 1 - Core MVP ✅ COMPLETATA

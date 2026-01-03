@@ -180,6 +180,110 @@
   - **Effort**: 1h
   - **Priorità**: 🔴 Critico
 
+### Wizard di Onboarding
+
+- [ ] **[WIZARD-001]** Creare migration per tabella `user_onboarding`
+  - Campi: id, user_id, current_step, status, building_id, completed_at, created_at, updated_at
+  - **Effort**: 0.5h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[WIZARD-002]** Creare modello SQLAlchemy per UserOnboarding
+  - File: `modules/backend/app/models/onboarding.py`
+  - **Effort**: 0.5h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[WIZARD-003]** Creare OnboardingService
+  - Logica per gestione stato wizard
+  - Validazione dispositivi via API ZCS
+  - File: `modules/backend/app/services/onboarding_service.py`
+  - **Effort**: 2h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[WIZARD-004]** Endpoint API Onboarding
+  - `GET /api/v1/onboarding/status` - Stato wizard utente
+  - `PUT /api/v1/onboarding/step/{step}` - Salva progresso step
+  - `POST /api/v1/onboarding/complete` - Marca completato
+  - `POST /api/v1/onboarding/skip` - Salta wizard
+  - `POST /api/v1/onboarding/validate-device` - Valida thing_key
+  - File: `modules/backend/app/api/v1/endpoints/onboarding.py`
+  - **Effort**: 3h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[WIZARD-005]** Componente WizardContainer
+  - Layout con stepper e progress bar
+  - Navigazione tra step (Avanti/Indietro)
+  - Responsive design
+  - File: `modules/frontend/src/components/wizard/WizardContainer.tsx`
+  - **Effort**: 3h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[WIZARD-006]** Step 1: Benvenuto
+  - Pagina introduttiva con branding
+  - Breve descrizione funzionalità
+  - CTA "Inizia configurazione"
+  - File: `modules/frontend/src/components/wizard/StepWelcome.tsx`
+  - **Effort**: 1h
+  - **Priorità**: ⚠️ Alto
+
+- [ ] **[WIZARD-007]** Step 2: Creazione Edificio
+  - Form con nome edificio
+  - Campo indirizzo con Google Autocomplete
+  - Mappa preview con marker
+  - Auto-detect timezone
+  - File: `modules/frontend/src/components/wizard/StepBuilding.tsx`
+  - **Effort**: 4h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[WIZARD-008]** Step 3: Aggiunta Dispositivi
+  - Form con Thing Key e nome dispositivo
+  - Validazione real-time via API ZCS
+  - Lista dispositivi aggiunti con rimozione
+  - Pulsante "+ Aggiungi altro"
+  - Minimo 1 dispositivo richiesto
+  - File: `modules/frontend/src/components/wizard/StepDevices.tsx`
+  - **Effort**: 4h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[WIZARD-009]** Step 4: Configurazione Notifiche
+  - Campo email
+  - Toggle per tipi di notifiche
+  - Step opzionale con "Configura dopo"
+  - File: `modules/frontend/src/components/wizard/StepNotifications.tsx`
+  - **Effort**: 2h
+  - **Priorità**: 🟡 Medio
+
+- [ ] **[WIZARD-010]** Step 5: Riepilogo
+  - Sommario configurazione completata
+  - Lista edificio e dispositivi
+  - Stato notifiche
+  - CTA "Vai alla Dashboard"
+  - Animazione celebrativa (confetti/success)
+  - File: `modules/frontend/src/components/wizard/StepSummary.tsx`
+  - **Effort**: 2h
+  - **Priorità**: ⚠️ Alto
+
+- [ ] **[WIZARD-011]** Hook useOnboarding
+  - Gestione stato wizard
+  - Chiamate API per salvataggio progresso
+  - Navigazione tra step
+  - File: `modules/frontend/src/hooks/useOnboarding.ts`
+  - **Effort**: 2h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[WIZARD-012]** Pagina Wizard (/onboarding)
+  - Route protetta per utenti senza edifici
+  - Redirect automatico se wizard non completato
+  - File: `modules/frontend/src/pages/Onboarding.tsx`
+  - **Effort**: 1h
+  - **Priorità**: 🔴 Critico
+
+- [ ] **[WIZARD-013]** Logica redirect nel ProtectedRoute
+  - Se utente loggato e wizard non completato → redirect a /onboarding
+  - Se wizard completato → accesso normale
+  - Aggiornare: `modules/frontend/src/components/common/ProtectedRoute.tsx`
+  - **Effort**: 1h
+  - **Priorità**: 🔴 Critico
+
 ---
 
 ## 🔴 CRITICAL BUGS
@@ -572,6 +676,7 @@
 | Priority | Count | Status |
 |----------|-------|--------|
 | 🏢 **Building Architecture** | **23** | **0/23** ⚡ NEW |
+| 🧙 **Wizard Onboarding** | **13** | **0/13** ⚡ NEW |
 | 🔴 Critical | 7 | **7/7 completed** ✅ |
 | ⚠️ High | 6 | 1/6 completed |
 | 🟡 Medium | 15 | **6/15 completed** |
@@ -579,7 +684,7 @@
 | 🚀 New Features | 7 | 0/7 completed |
 | 📋 Pages | 5 | 4/5 completed |
 | 🔧 Infra | 6 | 0/6 completed |
-| **TOTAL** | **77** | **18/77** |
+| **TOTAL** | **90** | **18/90** |
 
 ### 🏢 Building Architecture Breakdown
 
@@ -591,6 +696,16 @@
 | Frontend | BUILD-015 → BUILD-020 | ~23h |
 | Configurazione | BUILD-021 → BUILD-023 | ~2h |
 | **TOTALE** | **23 task** | **~58h** |
+
+### 🧙 Wizard Onboarding Breakdown
+
+| Categoria | Task | Effort Stimato |
+|-----------|------|----------------|
+| Database & Models | WIZARD-001, WIZARD-002 | ~1h |
+| Backend Services | WIZARD-003, WIZARD-004 | ~5h |
+| Frontend Components | WIZARD-005 → WIZARD-010 | ~16h |
+| Hooks & Routing | WIZARD-011 → WIZARD-013 | ~4h |
+| **TOTALE** | **13 task** | **~26h** |
 
 ---
 
@@ -612,3 +727,9 @@
   - Servizio temperatura automatico per ogni edificio
   - Google Places Autocomplete per ricerca indirizzi
   - 23 nuovi task aggiunti (stimati ~58h di lavoro)
+- **2026-01-03**: 🧙 **WIZARD ONBOARDING** - Aggiunto wizard iniziale per nuovi utenti
+  - 5 step: Benvenuto → Edificio → Dispositivi → Notifiche → Riepilogo
+  - Validazione dispositivi real-time via API ZCS
+  - Progresso salvato e ripristinabile
+  - Redirect automatico se wizard non completato
+  - 13 nuovi task aggiunti (stimati ~26h di lavoro)

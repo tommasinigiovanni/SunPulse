@@ -10,17 +10,18 @@
 
 1. [Introduzione](#1-introduzione)
 2. [Accesso alla Piattaforma](#2-accesso-alla-piattaforma)
-3. [**Gestione Edifici**](#3-gestione-edifici) 🏢 *NUOVO*
-4. [Dashboard Principale](#4-dashboard-principale)
-5. [Gestione Dispositivi](#5-gestione-dispositivi)
-6. [Analytics e Analisi](#6-analytics-e-analisi)
-7. [Allarmi e Notifiche](#7-allarmi-e-notifiche)
-8. [Impostazioni](#8-impostazioni)
-9. [Lettura Contatore Gas](#9-lettura-contatore-gas) ⛽ *Coming Soon*
-10. [Architettura Tecnica](#10-architettura-tecnica)
-11. [API ZCS Azzurro](#11-api-zcs-azzurro)
-12. [Troubleshooting](#12-troubleshooting)
-13. [FAQ](#13-faq)
+3. [**Wizard di Configurazione Iniziale**](#3-wizard-di-configurazione-iniziale) 🧙 *NUOVO*
+4. [**Gestione Edifici**](#4-gestione-edifici) 🏢 *NUOVO*
+5. [Dashboard Principale](#5-dashboard-principale)
+6. [Gestione Dispositivi](#6-gestione-dispositivi)
+7. [Analytics e Analisi](#7-analytics-e-analisi)
+8. [Allarmi e Notifiche](#8-allarmi-e-notifiche)
+9. [Impostazioni](#9-impostazioni)
+10. [Lettura Contatore Gas](#10-lettura-contatore-gas) ⛽ *Coming Soon*
+11. [Architettura Tecnica](#11-architettura-tecnica)
+12. [API ZCS Azzurro](#12-api-zcs-azzurro)
+13. [Troubleshooting](#13-troubleshooting)
+14. [FAQ](#14-faq)
 
 ---
 
@@ -94,11 +95,123 @@ Puoi forzare l'aggiornamento cliccando sul pulsante **"Aggiorna"** nelle varie p
 
 ---
 
-## 3. Gestione Edifici 🏢
+## 3. Wizard di Configurazione Iniziale 🧙
+
+> Al primo accesso, SunPulse ti guida attraverso un wizard step-by-step per configurare il tuo impianto in pochi minuti.
+
+### 3.1 Panoramica Wizard
+
+Il wizard di onboarding ti accompagna nella configurazione iniziale con 5 semplici step:
+
+| Step | Nome | Descrizione | Obbligatorio |
+|------|------|-------------|--------------|
+| 1 | **Benvenuto** | Introduzione a SunPulse | ✅ |
+| 2 | **Crea Edificio** | Nome e indirizzo del tuo edificio | ✅ |
+| 3 | **Aggiungi Dispositivi** | Configura i tuoi inverter ZCS | ✅ |
+| 4 | **Notifiche** | Imposta email e preferenze | ⏭️ Opzionale |
+| 5 | **Riepilogo** | Verifica e completa | ✅ |
+
+### 3.2 Step 1: Benvenuto
+
+La prima schermata ti dà il benvenuto in SunPulse e presenta brevemente le funzionalità principali:
+- Monitoraggio real-time della produzione
+- Analisi storiche e statistiche
+- Gestione allarmi e notifiche
+- Dati meteo integrati
+
+Clicca su **"Inizia configurazione"** per proseguire.
+
+### 3.3 Step 2: Crea il tuo Edificio
+
+In questo step crei il tuo primo edificio:
+
+1. **Nome Edificio**: Inserisci un nome identificativo (es: "Casa Principale", "Ufficio Milano")
+
+2. **Indirizzo**: Inizia a digitare l'indirizzo e seleziona dalla lista di suggerimenti
+   - La ricerca utilizza Google Places per trovare indirizzi reali
+   - Seleziona il risultato corretto dalla lista dropdown
+   - Vedrai una mappa di anteprima con la posizione
+
+3. **Verifica**: Controlla che la posizione sulla mappa sia corretta
+
+> **Cosa succede automaticamente:**
+> - Le coordinate GPS vengono estratte dall'indirizzo
+> - Il fuso orario viene rilevato automaticamente
+> - Il servizio meteo viene attivato per la tua posizione
+
+### 3.4 Step 3: Aggiungi Dispositivi
+
+Configura i tuoi dispositivi ZCS:
+
+1. **Thing Key**: Inserisci il codice identificativo del tuo inverter
+   - Lo trovi sull'etichetta dell'inverter o nell'app ZCS Azzurro
+   - Formato tipico: `ZE1ES330J9E558`
+
+2. **Nome Dispositivo**: Assegna un nome descrittivo (es: "Inverter Tetto Sud")
+
+3. **Validazione**: Il sistema verifica automaticamente la connessione con le API ZCS
+   - ✅ Verde: Dispositivo trovato e connesso
+   - ❌ Rosso: Thing Key non valida o non raggiungibile
+
+4. **Aggiungi altri**: Clicca su **"+ Aggiungi altro dispositivo"** per configurare più inverter
+
+> **Nota**: Devi aggiungere almeno un dispositivo per completare il wizard.
+
+### 3.5 Step 4: Configura Notifiche (Opzionale)
+
+Imposta le preferenze per le notifiche email:
+
+| Opzione | Default | Descrizione |
+|---------|---------|-------------|
+| **Email** | (vuoto) | Indirizzo per ricevere notifiche |
+| **Allarmi Critici** | ✅ ON | Notifica immediata per problemi gravi |
+| **Avvisi** | ✅ ON | Notifica per warning e anomalie |
+| **Report Giornaliero** | ⬜ OFF | Riepilogo produzione ogni giorno |
+| **Report Settimanale** | ✅ ON | Riepilogo settimanale con analytics |
+
+Puoi saltare questo step cliccando su **"Configura dopo"** e completarlo successivamente dalle Impostazioni.
+
+### 3.6 Step 5: Riepilogo
+
+L'ultimo step mostra un riepilogo della configurazione:
+
+```
+✅ Edificio creato
+   "Casa Principale" - Via Roma 1, 20121 Milano
+   
+✅ Dispositivi configurati (2)
+   • Inverter Tetto Sud (ZE1ES330J9E558) - Online
+   • Batteria Garage (ZE1BAT123456) - Online
+   
+✅ Notifiche attive
+   Email: mario.rossi@email.com
+   
+✅ Servizio Meteo attivo
+   Milano (45.46°N, 9.19°E) - Aggiornamento ogni 15 min
+```
+
+Clicca su **"Vai alla Dashboard"** 🚀 per iniziare a monitorare il tuo impianto!
+
+### 3.7 Riprendere il Wizard
+
+Se chiudi il browser durante il wizard:
+- Il progresso viene salvato automaticamente
+- Al prossimo accesso riprenderai dallo step dove ti eri fermato
+- Non perdi i dati già inseriti
+
+### 3.8 Saltare il Wizard
+
+Il wizard può essere saltato solo se hai già almeno un edificio configurato (es: se sei stato invitato da un altro utente). In questo caso vedrai l'opzione "Salta" che ti porta direttamente alla Dashboard.
+
+---
+
+## 4. Gestione Edifici 🏢
 
 > **Concetto Chiave**: L'edificio è l'entità centrale di SunPulse. Prima di poter monitorare i tuoi dispositivi, devi creare almeno un edificio.
 
-### 3.1 Cos'è un Edificio?
+### 4.1 Cos'è un Edificio?
+
+> **Nota**: Se hai appena completato il wizard, hai già creato il tuo primo edificio. Questa sezione spiega come gestire edifici aggiuntivi.
 
 In SunPulse, un **Edificio** rappresenta una location fisica (casa, ufficio, capannone, ecc.) dove sono installati i dispositivi fotovoltaici. Ogni edificio ha:
 
@@ -108,9 +221,9 @@ In SunPulse, un **Edificio** rappresenta una location fisica (casa, ufficio, cap
 - **Dati Meteo**: Temperatura e condizioni meteo in tempo reale
 - **Dispositivi**: Gli inverter e le batterie associati
 
-### 3.2 Primo Accesso: Creazione Edificio
+### 4.2 Aggiungere un Nuovo Edificio
 
-Al primo accesso, se non hai ancora edifici configurati, vedrai la schermata di **Onboarding**:
+Dopo il wizard iniziale, puoi aggiungere altri edifici in qualsiasi momento:
 
 1. Clicca su **"Crea il tuo primo edificio"**
 2. Inserisci il **Nome** dell'edificio (es: "Casa Vacanze Rimini")
@@ -121,7 +234,7 @@ Al primo accesso, se non hai ancora edifici configurati, vedrai la schermata di 
 
 > **Nota**: L'indirizzo viene ricercato in tempo reale tramite Google Places Autocomplete. Inizia a digitare e seleziona il risultato corretto dalla lista.
 
-### 3.3 Servizio Temperatura
+### 4.3 Servizio Temperatura
 
 Quando crei un edificio, viene attivato automaticamente un servizio che:
 
@@ -135,7 +248,7 @@ Questi dati sono visibili:
 - Nella Dashboard principale
 - Nella pagina dettaglio edificio
 
-### 3.4 Gestione Multipla Edifici
+### 4.4 Gestione Multipla Edifici
 
 Puoi creare e gestire più edifici. Casi d'uso comuni:
 - Casa principale + Casa vacanze
@@ -152,7 +265,7 @@ Puoi creare e gestire più edifici. Casi d'uso comuni:
 2. Seleziona l'edificio desiderato dalla lista
 3. La Dashboard e tutti i dati si aggiorneranno per mostrare l'edificio selezionato
 
-### 3.5 Condivisione Edificio
+### 4.5 Condivisione Edificio
 
 Più utenti possono accedere allo stesso edificio. Questo è utile per:
 - Famiglie che vogliono monitorare lo stesso impianto
@@ -177,7 +290,7 @@ Più utenti possono accedere allo stesso edificio. Questo è utile per:
 
 L'utente invitato riceverà un'email con il link per accettare l'invito.
 
-### 3.6 Associazione Dispositivi
+### 4.6 Associazione Dispositivi
 
 Dopo aver creato l'edificio, devi associare i dispositivi ZCS:
 
@@ -189,7 +302,7 @@ Dopo aver creato l'edificio, devi associare i dispositivi ZCS:
 
 Il dispositivo verrà collegato all'edificio e inizierà la raccolta dati.
 
-### 3.7 Modifica ed Eliminazione Edificio
+### 4.7 Modifica ed Eliminazione Edificio
 
 **Per modificare un edificio:**
 1. Vai su **Impostazioni → Edifici**
@@ -206,11 +319,11 @@ Il dispositivo verrà collegato all'edificio e inizierà la raccolta dati.
 
 ---
 
-## 4. Dashboard Principale
+## 5. Dashboard Principale
 
 La Dashboard è la pagina principale che mostra una panoramica completa del tuo impianto fotovoltaico.
 
-### 4.1 Selettore Edificio e Dispositivo
+### 5.1 Selettore Edificio e Dispositivo
 
 In alto trovi due selettori:
 
@@ -223,7 +336,7 @@ In alto trovi due selettori:
 - Visualizzare dati aggregati di tutti i dispositivi (opzione predefinita: "🏠 Tutti i dispositivi")
 - Filtrare i dati per un singolo inverter (es: "⚡ Inverter ZCS 1")
 
-### 4.2 KPI Cards (Indicatori Principali)
+### 5.2 KPI Cards (Indicatori Principali)
 
 Quattro card mostrano le metriche più importanti:
 
@@ -247,7 +360,7 @@ Quattro card mostrano le metriche più importanti:
 - **Colore**: Verde
 - **Calcolo**: Energia prodotta × 0,4 kg CO₂/kWh
 
-### 4.3 Bilancio Energetico Giornaliero
+### 5.3 Bilancio Energetico Giornaliero
 
 Tre card mostrano la suddivisione dettagliata di produzione e consumo:
 
@@ -272,7 +385,7 @@ Valori in tempo reale:
 - **🔋 Batteria**: Percentuale di carica con barra di progresso colorata
 - **🌡️ Temperatura**: Temperatura attuale dell'edificio (dal servizio meteo)
 
-### 4.4 Grafico Produzione vs Consumo
+### 5.4 Grafico Produzione vs Consumo
 
 Grafico a linee che mostra l'andamento nelle ultime 24 ore:
 - **Linea Verde**: Produzione fotovoltaica
@@ -285,7 +398,7 @@ Grafico a linee che mostra l'andamento nelle ultime 24 ore:
 - Lo zoom può essere attivato selezionando un'area
 - Il grafico si aggiorna automaticamente ogni 5 minuti
 
-### 4.5 Analytics Avanzate
+### 5.5 Analytics Avanzate
 
 Card finale con stime annuali:
 - **Produzione Annuale Stimata**: Basata sulla media giornaliera
@@ -295,9 +408,9 @@ Card finale con stime annuali:
 
 ---
 
-## 5. Gestione Dispositivi
+## 6. Gestione Dispositivi
 
-### 5.1 Lista Dispositivi
+### 6.1 Lista Dispositivi
 
 Dalla pagina **Dispositivi** puoi vedere tutti gli inverter e i sistemi di accumulo configurati.
 
@@ -315,7 +428,7 @@ Dalla pagina **Dispositivi** puoi vedere tutti gli inverter e i sistemi di accum
 
 > **Nota**: I dispositivi mostrati appartengono all'edificio attualmente selezionato. Per vedere i dispositivi di un altro edificio, cambia l'edificio dal selettore nell'Header.
 
-### 5.2 Dettaglio Dispositivo
+### 6.2 Dettaglio Dispositivo
 
 Cliccando su un dispositivo accedi alla **pagina di dettaglio** con:
 
@@ -363,11 +476,11 @@ Contatori cumulativi dall'installazione:
 
 ---
 
-## 6. Analytics e Analisi
+## 7. Analytics e Analisi
 
 La pagina **Analytics** offre strumenti avanzati per analizzare i dati storici e ottimizzare i consumi.
 
-### 6.1 Selettore Periodo
+### 7.1 Selettore Periodo
 
 Scegli l'intervallo temporale da analizzare:
 - **Oggi**: Dati della giornata corrente
@@ -375,7 +488,7 @@ Scegli l'intervallo temporale da analizzare:
 - **Mese**: Ultimi 30 giorni
 - **Anno**: Ultimi 12 mesi
 
-### 6.2 KPI Analytics
+### 7.2 KPI Analytics
 
 Quattro indicatori mostrano i totali aggregati per il periodo selezionato:
 
@@ -396,7 +509,7 @@ Quattro indicatori mostrano i totali aggregati per il periodo selezionato:
 - CO₂ evitata grazie alla produzione solare (kg)
 - Calcolo: Produzione × 0,4 kg CO₂/kWh
 
-### 6.3 Indicatori di Performance
+### 7.3 Indicatori di Performance
 
 #### 📊 Tasso di Autoconsumo
 Percentuale di energia prodotta che viene utilizzata direttamente in casa (senza passare per la rete).
@@ -424,7 +537,7 @@ Autosufficienza (%) = ((Autoconsumo + Da Batteria) / Consumo Totale) × 100
 - **60-80%**: Buono - buona autonomia energetica
 - **< 60%**: Da migliorare - dipendi ancora molto dalla rete
 
-### 6.4 Grafico Produzione vs Consumo
+### 7.4 Grafico Produzione vs Consumo
 
 Grafico a barre raggruppate che mostra:
 - **Barre Verdi**: Produzione giornaliera
@@ -434,7 +547,7 @@ Grafico a barre raggruppate che mostra:
 - Quando la barra verde è più alta: hai prodotto più di quanto consumato (surplus)
 - Quando la barra arancione è più alta: hai consumato più di quanto prodotto (deficit)
 
-### 6.5 Grafici a Torta
+### 7.5 Grafici a Torta
 
 Due grafici circolari mostrano la distribuzione energetica:
 
@@ -450,7 +563,7 @@ Mostra come viene utilizzata l'energia prodotta:
 - **Verso Batteria** (viola): Per accumulo
 - **Verso Rete** (blu): Venduta al gestore
 
-### 6.6 Tabelle Riepilogo
+### 7.6 Tabelle Riepilogo
 
 Due tabelle dettagliate mostrano i valori numerici esatti:
 
@@ -468,11 +581,11 @@ Due tabelle dettagliate mostrano i valori numerici esatti:
 
 ---
 
-## 7. Allarmi e Notifiche
+## 8. Allarmi e Notifiche
 
 La pagina **Allarmi** permette di monitorare e gestire tutte le notifiche e gli alert del sistema.
 
-### 7.1 Dashboard Allarmi
+### 8.1 Dashboard Allarmi
 
 In alto vengono mostrati 4 contatori:
 
@@ -483,14 +596,14 @@ In alto vengono mostrati 4 contatori:
 | **Risolti Oggi** | Allarmi risolti nelle ultime 24 ore | Verde |
 | **Totale** | Totale allarmi registrati nel sistema | Grigio |
 
-### 7.2 Filtri
+### 8.2 Filtri
 
 Usa il selettore in alto a destra per filtrare gli allarmi:
 - **Tutti**: Mostra tutti gli allarmi (badge con totale)
 - **Attivi**: Solo allarmi attivi + in attesa (badge rosso)
 - **Risolti**: Solo allarmi risolti (badge verde)
 
-### 7.3 Tabella Allarmi
+### 8.3 Tabella Allarmi
 
 La tabella mostra i dettagli di ogni allarme:
 
@@ -509,20 +622,20 @@ La tabella mostra i dettagli di ogni allarme:
 - **Data**: Quando è stato rilevato
 - **Azioni**: Pulsanti per gestire l'allarme
 
-### 7.4 Gestione Allarmi
+### 8.4 Gestione Allarmi
 
 Per ogni allarme puoi:
 
 1. **Confermare** (se Attivo): Prende in carico l'allarme, cambia stato in "Preso in carico"
 2. **Risolvi** (se Attivo o Preso in carico): Marca l'allarme come risolto
 
-### 7.5 Alert Banner
+### 8.5 Alert Banner
 
 Se ci sono allarmi critici attivi, vedrai un banner rosso in alto con:
 - Numero di allarmi critici
 - Messaggio: "Richiede attenzione immediata"
 
-### 7.6 Tipi di Allarmi Comuni
+### 8.6 Tipi di Allarmi Comuni
 
 | Codice | Severità | Descrizione | Azione Consigliata |
 |--------|----------|-------------|-------------------|
@@ -532,12 +645,12 @@ Se ci sono allarmi critici attivi, vedrai un banner rosso in alto con:
 | **C001** | Critical | Perdita connessione inverter | Contattare assistenza |
 | **C002** | Critical | Errore comunicazione batteria | Contattare assistenza |
 
-### 7.7 Pulsanti Azione
+### 8.7 Pulsanti Azione
 
 - **🔄 Aggiorna**: Ricarica la lista allarmi
 - **🕐 Storico**: Visualizza lo storico completo (funzionalità futura)
 
-### 7.8 Notifiche Email
+### 8.8 Notifiche Email
 
 Le notifiche email vengono inviate automaticamente per:
 - Allarmi critici (immediato)
@@ -553,11 +666,11 @@ Vai su **Impostazioni → Notifiche** per configurare:
 
 ---
 
-## 8. Impostazioni
+## 9. Impostazioni
 
 La pagina **Impostazioni** permette di configurare il sistema e le preferenze utente.
 
-### 8.1 Scheda Generale
+### 9.1 Scheda Generale
 
 **Nome Impianto**
 - Personalizza il nome del tuo impianto (es: "Casa Tommasini")
@@ -580,7 +693,7 @@ La pagina **Impostazioni** permette di configurare il sistema e le preferenze ut
 
 > Questi valori vengono usati per calcolare i risparmi economici nelle dashboard e analytics.
 
-### 8.2 Scheda Notifiche
+### 9.2 Scheda Notifiche
 
 **Notifiche Email**
 - Inserisci il tuo indirizzo email per ricevere le notifiche
@@ -595,7 +708,7 @@ La pagina **Impostazioni** permette di configurare il sistema e le preferenze ut
 - **Batteria Bassa (%)**: Percentuale sotto la quale viene inviato un avviso (default: 20%)
 - **Batteria Critica (%)**: Percentuale critica (default: 10%)
 
-### 8.3 Scheda Edifici 🏢 NEW
+### 9.3 Scheda Edifici 🏢 NEW
 
 **Lista Edifici**
 Visualizza tutti gli edifici a cui hai accesso:
@@ -611,7 +724,7 @@ Visualizza tutti gli edifici a cui hai accesso:
 - **Dispositivi**: Gestisci i dispositivi associati
 - **Elimina**: Rimuovi l'edificio (solo Owner)
 
-### 8.4 Scheda Dispositivi
+### 9.4 Scheda Dispositivi
 
 **Dispositivi Configurati**
 Mostra i dispositivi attualmente collegati:
@@ -624,7 +737,7 @@ Mostra i dispositivi attualmente collegati:
 - Funzionalità riservata all'amministratore
 - Per aggiungere nuovi dispositivi, contattare il supporto
 
-### 8.5 Scheda API
+### 9.5 Scheda API
 
 **Configurazione ZCS API**
 Visualizza lo stato della connessione alle API ZCS Azzurro:
@@ -639,7 +752,7 @@ Visualizza lo stato della connessione alle API ZCS Azzurro:
 
 > **Nota**: Intervalli troppo brevi possono causare problemi di rate limiting con le API ZCS
 
-### 8.6 Scheda Sistema
+### 9.6 Scheda Sistema
 
 **Informazioni Sistema**
 - **Versione**: v2.1.0
@@ -653,7 +766,7 @@ Visualizza lo stato della connessione alle API ZCS Azzurro:
 - 🔒 Backup Database
 - 🔒 Verifica Integrità
 
-### 8.7 Salvataggio Modifiche
+### 9.7 Salvataggio Modifiche
 
 Dopo aver modificato le impostazioni:
 1. Clicca su **"Salva Modifiche"** in alto a destra
@@ -664,11 +777,11 @@ Dopo aver modificato le impostazioni:
 
 ---
 
-## 9. Lettura Contatore Gas
+## 10. Lettura Contatore Gas
 
 > ⛽ **Coming Soon** - Funzionalità in sviluppo
 
-### 9.1 Panoramica
+### 10.1 Panoramica
 
 SunPulse permette di registrare le letture del contatore gas per monitorare i consumi domestici. Le letture possono essere inserite in due modi:
 
@@ -677,7 +790,7 @@ SunPulse permette di registrare le letture del contatore gas per monitorare i co
 | **Manuale** | Inserisci il valore letto sul contatore | Sempre affidabile |
 | **OCR da Foto** | Scatta una foto al contatore | Più veloce, evita errori di trascrizione |
 
-### 9.2 Inserimento Manuale
+### 10.2 Inserimento Manuale
 
 1. Vai alla pagina **Contatori** dal menu laterale
 2. Clicca su **Nuova Lettura**
@@ -689,7 +802,7 @@ SunPulse permette di registrare le letture del contatore gas per monitorare i co
 
 > ⚠️ **Nota**: Il sistema verifica che la nuova lettura sia maggiore della precedente
 
-### 9.3 Lettura con OCR
+### 10.3 Lettura con OCR
 
 1. Vai alla pagina **Contatori**
 2. Clicca su **Scatta Foto** o **Carica Immagine**
@@ -704,7 +817,7 @@ SunPulse permette di registrare le letture del contatore gas per monitorare i co
 - 📏 Avvicinati per vedere bene le cifre
 - 🧹 Pulisci il vetro del contatore se sporco
 
-### 9.4 Storico e Consumi
+### 10.4 Storico e Consumi
 
 Nella sezione **Storico Letture** puoi:
 - 📊 Vedere il grafico dei consumi nel tempo
@@ -712,7 +825,7 @@ Nella sezione **Storico Letture** puoi:
 - 📈 Calcolare il consumo tra due date
 - 📥 Esportare i dati in CSV
 
-### 9.5 Calcolo Consumo
+### 10.5 Calcolo Consumo
 
 Il consumo viene calcolato automaticamente:
 
@@ -727,9 +840,9 @@ Esempio:
 
 ---
 
-## 10. Architettura Tecnica
+## 11. Architettura Tecnica
 
-### 10.1 Stack Tecnologico
+### 11.1 Stack Tecnologico
 
 **Frontend:**
 - React 18.2
@@ -749,7 +862,7 @@ Esempio:
 - Traefik (reverse proxy + SSL)
 - Nginx (static file serving)
 
-### 10.2 Flusso Dati
+### 11.2 Flusso Dati
 
 ```
 ┌──────────────┐       ┌──────────────┐       ┌──────────────┐
@@ -777,7 +890,7 @@ Esempio:
                                               └──────────────┘
 ```
 
-### 10.3 Aggiornamento Dati
+### 11.3 Aggiornamento Dati
 
 **Task Automatici (Celery):**
 - **collect_realtime_data**: ogni 2 minuti
@@ -791,9 +904,9 @@ Esempio:
 
 ---
 
-## 11. API ZCS Azzurro
+## 12. API ZCS Azzurro
 
-### 11.1 Endpoint Base
+### 12.1 Endpoint Base
 
 ```
 POST https://third.zcsazzurroportal.com:19003/
@@ -803,7 +916,7 @@ Headers:
   - Content-Type: application/json
 ```
 
-### 11.2 Metodi Principali
+### 12.2 Metodi Principali
 
 #### realtimeData
 Snapshot corrente di tutte le metriche
@@ -819,7 +932,7 @@ Timeline storica allarmi (max 24h per richiesta)
 
 > Per dettagli completi vedi `doc/Specifica API 1.8 del 10-03-2025 (IT)/input.md`
 
-### 11.3 Limiti Rate Limiting
+### 12.3 Limiti Rate Limiting
 
 - **Massimo ~100 richieste/ora** (stima)
 - **Finestra max 24 ore** per dati storici
@@ -827,9 +940,9 @@ Timeline storica allarmi (max 24h per richiesta)
 
 ---
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
-### 12.1 Dashboard mostra dati a zero
+### 13.1 Dashboard mostra dati a zero
 
 **Sintomo**: Tutti i valori energetici mostrano 0 kWh
 
@@ -843,7 +956,7 @@ Timeline storica allarmi (max 24h per richiesta)
 - Oppure clicca sul pulsante "Aggiorna" per forzare il refresh
 - Verifica che l'inverter sia online (🟢)
 
-### 12.2 Errore di connessione
+### 13.2 Errore di connessione
 
 **Sintomo**: "Impossibile caricare i dati" o spinner infinito
 
@@ -858,7 +971,7 @@ Timeline storica allarmi (max 24h per richiesta)
 3. Controlla lo stato su **Impostazioni → API**
 4. Se il problema persiste, contatta il supporto
 
-### 12.3 Grafici non si caricano
+### 13.3 Grafici non si caricano
 
 **Sintomo**: Card dei grafici mostrano errore o sono vuote
 
@@ -872,7 +985,7 @@ Timeline storica allarmi (max 24h per richiesta)
 2. Verifica stato dispositivo nella pagina Dispositivi
 3. Se persiste, contatta amministratore di sistema
 
-### 12.4 Email notifiche non arrivano
+### 13.4 Email notifiche non arrivano
 
 **Sintomo**: Non ricevi email per allarmi o report
 
@@ -888,7 +1001,7 @@ Timeline storica allarmi (max 24h per richiesta)
 4. Aggiungi `noreply@sunpulse.com` ai contatti attendibili
 5. Clicca su "Invia Test" per verificare
 
-### 12.5 Logout automatico
+### 13.5 Logout automatico
 
 **Sintomo**: Vieni disconnesso frequentemente
 
@@ -902,7 +1015,7 @@ Timeline storica allarmi (max 24h per richiesta)
 - Se troppo frequente, verifica le impostazioni privacy del browser
 - Assicurati che i cookie siano abilitati per il sito
 
-### 12.6 Errori 500 (Internal Server Error)
+### 13.6 Errori 500 (Internal Server Error)
 
 **Sintomo**: Errore generico del server
 
@@ -920,9 +1033,9 @@ Timeline storica allarmi (max 24h per richiesta)
 
 ---
 
-## 13. FAQ
+## 14. FAQ
 
-### 13.1 Domande Generali
+### 14.1 Domande Generali
 
 **Q: SunPulse funziona con altri inverter oltre a ZCS Azzurro?**
 A: Attualmente SunPulse supporta solo inverter ZCS Azzurro con accesso alle API ZCS Portal. Il supporto per altri brand è in roadmap.
@@ -949,7 +1062,7 @@ A: Vai su Impostazioni → Edifici → [Edificio] → Gestisci Membri e invia un
 **Q: L'indirizzo dell'edificio è obbligatorio?**
 A: Sì, l'indirizzo è necessario per determinare le coordinate GPS, che vengono usate per recuperare i dati meteo locali (temperatura, alba/tramonto, condizioni meteo).
 
-### 13.2 Dati e Metriche
+### 14.2 Dati e Metriche
 
 **Q: Perché l'energia giornaliera è diversa tra Dashboard e Analytics?**
 A: La Dashboard mostra dati in tempo reale (aggiornati ogni 2 min), mentre Analytics usa dati aggregati salvati nel database a mezzanotte. Piccole differenze sono normali.
@@ -963,7 +1076,7 @@ A: È la percentuale del tuo consumo coperta da fonti proprie (solare + batteria
 **Q: Perché i totali storici non cambiano?**
 A: I "Totali Storici" sono contatori cumulativi dall'installazione dell'impianto. Crescono sempre, non si resettano mai.
 
-### 13.3 Batteria
+### 14.3 Batteria
 
 **Q: Perché la batteria si scarica di notte?**
 A: La batteria alimenta la casa quando i pannelli non producono (notte). È il comportamento corretto per massimizzare l'autoconsumo.
@@ -974,7 +1087,7 @@ A: Un ciclo = carica completa (0→100%) + scarica completa (100→0%). Più cic
 **Q: Quando conviene caricare la batteria dalla rete?**
 A: Dipende dalla tua tariffa elettrica. Se hai tariffe biorarie, conviene caricare di notte (F3) per usarla di giorno quando costa di più.
 
-### 13.4 Allarmi
+### 14.4 Allarmi
 
 **Q: Ho ricevuto allarme "Batteria sotto 20%", devo preoccuparmi?**
 A: No, è normale se hai consumato molto. La batteria si ricaricherà il giorno dopo con il sole. Preoccupati solo se persiste per più giorni.
@@ -985,7 +1098,7 @@ A: L'impianto produce meno del solito. Possibili cause: giornata nuvolosa, panne
 **Q: Come disattivo le notifiche email?**
 A: Vai su **Impostazioni → Notifiche** e disattiva gli interruttori delle notifiche che non vuoi ricevere.
 
-### 13.5 Tecnico
+### 14.5 Tecnico
 
 **Q: Dove sono salvati i miei dati?**
 A: I dati sono salvati su:
