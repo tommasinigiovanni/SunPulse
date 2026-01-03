@@ -482,7 +482,7 @@ export const Audit: React.FC = () => {
             <Card>
               <Statistic
                 title="Categorie"
-                value={Object.keys(stats.actions_by_category).length}
+                value={Object.keys(stats.actions_by_category || {}).length}
                 prefix={<FilterOutlined />}
               />
             </Card>
