@@ -137,13 +137,18 @@ async def get_settings_devices(
             last_update = None
             
             try:
-                realtime_data = await zcs_service.get_realtime_data(thing_key)
-                if realtime_data and realtime_data.get("realtimeData"):
-                    last_update = "Ora"
-                    status = "online"
+                realtime_data = await zcs_service.get_realtime_data([thing_key])
+                if realtime_data and realtime_data.get("success") and realtime_data.get("data", {}).get(thing_key):
+                    device_data = realtime_data["data"][thing_key]
+                    if device_data.get("realtimeData"):
+                        last_update = "Ora"
+                        status = "online"
+                    else:
+                        status = "offline"
                 else:
                     status = "offline"
-            except Exception:
+            except Exception as e:
+                logger.warning("Error getting realtime data for device", thing_key=thing_key, error=str(e))
                 status = "unknown"
             
             devices.append(DeviceInfo(
@@ -180,10 +185,13 @@ async def get_api_status(
             thing_keys = app_settings.device_thing_keys
             if thing_keys:
                 # Try to get data to verify connection
-                data = await zcs_service.get_realtime_data(thing_keys[0])
-                connected = data is not None
+                data = await zcs_service.get_realtime_data([thing_keys[0]])
+                connected = data is not None and data.get("success", False)
                 if connected:
-                    last_sync = datetime.utcnow().strftime("%H:%M:%S")
+                    # Use Italian timezone
+                    from zoneinfo import ZoneInfo
+                    italy_tz = ZoneInfo("Europe/Rome")
+                    last_sync = datetime.now(italy_tz).strftime("%H:%M:%S")
         except Exception as e:
             error = str(e)
             connected = False
