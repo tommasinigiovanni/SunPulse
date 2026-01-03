@@ -35935,3 +35935,138 @@ Status: **completed**
 
 ---
 
+<think><details><summary>Thought Process</summary>
+Ora controllo se ci sono altri punti dove si accede a proprietà di `stats` che potrebbero essere undefined:</details></think>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "pattern": "stats\\.[a-z_]+",
+  "path": "/Users/giovannitommasini/git/personal/sunpulse/modules/frontend/src/pages/Audit.tsx",
+  "caseInsensitive": false
+}
+```
+Result:
+
+```json
+{
+  "success": {
+    "pattern": "stats\\.[a-z_]+",
+    "path": "/Users/giovannitommasini/git/personal/sunpulse/modules/frontend/src/pages/Audit.tsx",
+    "outputMode": "content",
+    "workspaceResults": {
+      "/Users/giovannitommasini/git/personal/sunpulse": {
+        "content": {
+          "matches": [
+            {
+              "file": "modules/frontend/src/pages/Audit.tsx",
+              "matches": [
+                {
+                  "lineNumber": 456,
+                  "content": "                value={stats.total_logs}"
+                },
+                {
+                  "lineNumber": 465,
+                  "content": "                value={stats.unique_users}"
+                },
+                {
+                  "lineNumber": 474,
+                  "content": "                value={stats.success_rate}"
+                },
+                {
+                  "lineNumber": 477,
+                  "content": "                valueStyle={{ color: stats.success_rate &gt;= 90 ? '#3f8600' : '#cf1322' }}"
+                },
+                {
+                  "lineNumber": 485,
+                  "content": "                value={Object.keys(stats.actions_by_category || {}).length}"
+                }
+              ]
+            }
+          ],
+          "totalLines": 5,
+          "totalMatchedLines": 5
+        }
+      }
+    }
+  }
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Questi altri campi (`total_logs`, `unique_users`, `success_rate`) dovrebbero essere ok perché sono valori primitivi che risulteranno in undefined/0 se non presenti, il che non causa un crash.Ma per sicurezza, potrei aggiungere valori di default anche per questi. Per ora la correzione per `actions_by_category` dovrebbe essere sufficiente.
+
+Verifico se ci sono errori di linting:</details></think>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints">
+<details>
+<summary>Tool use: **read_lints**</summary>
+
+
+Parameters:
+
+```json
+{
+  "paths": [
+    "/Users/giovannitommasini/git/personal/sunpulse/modules/frontend/src/pages/Audit.tsx"
+  ]
+}
+```
+Result:
+
+```json
+{
+  "linterErrorsByFile": [
+    {
+      "relativeWorkspacePath": "/Users/giovannitommasini/git/personal/sunpulse/modules/frontend/src/pages/Audit.tsx"
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Bene, nessun errore di linting. L'utente ora deve ricostruire il frontend:</details></think>
+
+---
+
+Corretto! Ora ricostruisci il frontend:
+
+```bash
+docker compose build frontend
+docker compose up -d frontend
+```
+
+## Riepilogo Fix di Oggi
+
+1. ✅ **Sistema Email Notifiche** - Template settimanale, report automatici Celery
+2. ✅ **Errore `.map()` in Settings/DeviceList** - Controlli Array.isArray
+3. ✅ **Errore 403 Audit** - Cambiato da admin a auth_dependency  
+4. ✅ **Timeout PUT /settings** - Fix middleware che consumava il body
+5. ✅ **Errore Object.keys in Audit** - Fallback `|| {}` per actions_by_category
+
+---
+

@@ -1,7 +1,7 @@
 # ☀️ SunPulse - Context File
-> **Data ultimo aggiornamento:** 2025-12-11  
+> **Data ultimo aggiornamento:** 2026-01-03  
 > **Versione progetto:** v2.2.0  
-> **Stato:** Fase 3 completata, notifiche email automatiche attive
+> **Stato:** Fase 3 completata, deploy HTTPS attivo, architettura Building in sviluppo, notifiche email automatiche attive
 
 ---
 
@@ -12,6 +12,174 @@ Piattaforma di monitoraggio impianti fotovoltaici che integra le API ZCS Azzurro
 - Analisi storiche produzione/consumo
 - Gestione allarmi e notifiche
 - Automazioni workflow
+- **Gestione multi-edificio con dati meteo localizzati**
+
+---
+
+## 1.1 Modello Dati Centrale: Edificio (Building)
+
+### Architettura Entità
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         USERS                                    │
+│   (Autenticazione Auth0, profilo utente)                        │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  │ N:M (un utente può accedere
+                                  │      a più edifici)
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        EDIFICIO (Building)                       │
+│   - Nome edificio                                                │
+│   - Indirizzo (Google Places Autocomplete)                      │
+│   - Coordinate GPS (lat/lng)                                    │
+│   - Temperatura attuale (servizio meteo)                        │
+│   - Timezone                                                     │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  │ 1:N (un edificio ha
+                                  │      più dispositivi)
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        DISPOSITIVI (Devices)                     │
+│   - Inverter ZCS                                                │
+│   - Batterie                                                     │
+│   - Smart Meter                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Relazioni
+
+| Relazione | Tipo | Descrizione |
+|-----------|------|-------------|
+| Users ↔ Buildings | N:M | Più utenti possono accedere allo stesso edificio |
+| Building → Devices | 1:N | Un edificio contiene più dispositivi |
+| Building → Weather | 1:1 | Ogni edificio ha dati meteo in tempo reale |
+
+### Flusso Utente
+
+1. **Primo Accesso**: L'utente si autentica via Auth0
+2. **Creazione Edificio**: L'utente crea un nuovo edificio inserendo:
+   - Nome (es: "Casa Principale", "Ufficio Milano")
+   - Indirizzo (ricerca con Google Places Autocomplete)
+3. **Attivazione Servizi**: Alla creazione dell'edificio si attiva automaticamente:
+   - Servizio recupero temperatura (basato su coordinate GPS)
+   - Sincronizzazione timezone
+4. **Associazione Dispositivi**: L'utente associa i dispositivi ZCS all'edificio
+5. **Condivisione**: L'utente può invitare altri utenti ad accedere all'edificio
+
+### Servizio Temperatura
+
+Quando viene creato un edificio, viene attivato un task Celery che:
+- Recupera le coordinate GPS dall'indirizzo (Google Geocoding API)
+- Interroga un'API meteo (OpenWeatherMap / WeatherAPI) ogni 15 minuti
+- Salva temperatura attuale, umidità, condizioni meteo
+- I dati meteo sono disponibili nella Dashboard per correlazione produzione/temperatura
+
+---
+
+## 1.2 Wizard di Onboarding
+
+### Panoramica
+
+Al primo accesso, l'utente viene guidato attraverso un **wizard step-by-step** per configurare il sistema. Il wizard è obbligatorio per i nuovi utenti senza edifici configurati.
+
+### Flusso Wizard
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     STEP 1: BENVENUTO                           │
+│  "Benvenuto in SunPulse! Configuriamo il tuo impianto"          │
+│  • Breve intro alle funzionalità                                │
+│  • CTA: "Inizia configurazione"                                 │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   STEP 2: CREA EDIFICIO                         │
+│  • Campo: Nome edificio (es: "Casa Principale")                 │
+│  • Campo: Indirizzo (Google Places Autocomplete)                │
+│  • Preview: Mappa con marker sulla posizione                    │
+│  • Auto-detect: Timezone dall'indirizzo                         │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                 STEP 3: AGGIUNGI DISPOSITIVI                    │
+│  • Campo: Thing Key dispositivo ZCS (es: ZE1ES330J9E558)        │
+│  • Campo: Nome dispositivo (es: "Inverter Tetto Sud")           │
+│  • Pulsante: "+ Aggiungi altro dispositivo"                     │
+│  • Lista: Dispositivi aggiunti con possibilità di rimuovere     │
+│  • Validazione: Verifica connessione API ZCS                    │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              STEP 4: CONFIGURA NOTIFICHE (Opzionale)            │
+│  • Campo: Email per notifiche                                   │
+│  • Toggle: Allarmi critici (default: ON)                        │
+│  • Toggle: Report giornaliero (default: OFF)                    │
+│  • Toggle: Report settimanale (default: ON)                     │
+│  • Skip: "Configura dopo" link                                  │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   STEP 5: RIEPILOGO                             │
+│  ✅ Edificio: "Casa Principale" - Via Roma 1, Milano            │
+│  ✅ Dispositivi: 2 configurati                                   │
+│     • Inverter Tetto Sud (ZE1ES330J9E558)                       │
+│     • Batteria Garage (ZE1BAT123456)                            │
+│  ✅ Notifiche: Email configurata                                 │
+│  ✅ Meteo: Attivo per Milano (45.46°N, 9.19°E)                  │
+│                                                                  │
+│  CTA: "Vai alla Dashboard" 🚀                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Stati del Wizard
+
+| Stato | Descrizione | Azione |
+|-------|-------------|--------|
+| `not_started` | Utente appena registrato | Mostra wizard |
+| `in_progress` | Wizard iniziato ma non completato | Riprende dallo step corrente |
+| `completed` | Wizard completato | Vai direttamente alla Dashboard |
+| `skipped` | Utente ha saltato (solo se già ha edifici) | Vai alla Dashboard |
+
+### Persistenza Progresso
+
+Il progresso del wizard viene salvato in `user_onboarding`:
+
+```sql
+user_onboarding (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) UNIQUE,
+  current_step INTEGER DEFAULT 1,
+  status VARCHAR(20) DEFAULT 'not_started',  -- not_started, in_progress, completed, skipped
+  building_id INTEGER REFERENCES buildings(id),  -- edificio creato durante wizard
+  completed_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP
+)
+```
+
+### Componenti UI
+
+| Componente | Descrizione |
+|------------|-------------|
+| `WizardContainer` | Layout con stepper, progress bar, navigazione |
+| `WizardStep` | Wrapper per singolo step con validazione |
+| `StepWelcome` | Intro e CTA iniziale |
+| `StepBuilding` | Form creazione edificio con mappa |
+| `StepDevices` | Form aggiunta dispositivi con validazione |
+| `StepNotifications` | Configurazione notifiche (opzionale) |
+| `StepSummary` | Riepilogo finale e CTA dashboard |
+| `WizardProgress` | Barra progresso con step indicator |
+
+### API Endpoints Wizard
+
+```
+GET  /api/v1/onboarding/status           # Stato wizard utente
+PUT  /api/v1/onboarding/step/{step}      # Salva progresso step
+POST /api/v1/onboarding/complete         # Marca wizard come completato
+POST /api/v1/onboarding/skip             # Salta wizard (se permesso)
+POST /api/v1/onboarding/validate-device  # Valida thing_key dispositivo
+```
 
 ---
 
@@ -309,15 +477,104 @@ Storico allarmi (max 24h per richiesta).
 ### PostgreSQL Schema
 
 ```sql
--- Tabelle principali
-users (id, auth0_id, email, name, picture, created_at, last_login)
+-- ========================================
+-- ENTITÀ CENTRALE: EDIFICIO (Building)
+-- ========================================
+
+-- Utenti (autenticati via Auth0)
+users (
+  id SERIAL PRIMARY KEY,
+  auth0_id VARCHAR(100) UNIQUE NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  name VARCHAR(255),
+  picture VARCHAR(500),
+  created_at TIMESTAMP DEFAULT NOW(),
+  last_login TIMESTAMP
+)
+
+-- Edifici (entità centrale)
+buildings (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  address VARCHAR(500) NOT NULL,           -- Indirizzo completo (da Google Places)
+  address_components JSONB,                 -- Componenti indirizzo strutturati
+  place_id VARCHAR(100),                    -- Google Place ID
+  latitude DECIMAL(10, 8),                  -- Coordinata GPS
+  longitude DECIMAL(11, 8),                 -- Coordinata GPS
+  timezone VARCHAR(50) DEFAULT 'Europe/Rome',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP,
+  created_by INTEGER REFERENCES users(id)
+)
+
+-- Relazione N:M tra Users e Buildings
+user_buildings (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  building_id INTEGER REFERENCES buildings(id) ON DELETE CASCADE,
+  role VARCHAR(50) DEFAULT 'member',        -- 'owner', 'admin', 'member', 'viewer'
+  invited_by INTEGER REFERENCES users(id),
+  joined_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, building_id)
+)
+
+-- Dispositivi (collegati all'edificio)
+devices (
+  id SERIAL PRIMARY KEY,
+  building_id INTEGER REFERENCES buildings(id) ON DELETE CASCADE,  -- NUOVO!
+  thing_key VARCHAR(100) UNIQUE NOT NULL,
+  name VARCHAR(255),
+  type VARCHAR(50),                         -- 'inverter', 'battery', 'meter'
+  manufacturer VARCHAR(100) DEFAULT 'ZCS',
+  model VARCHAR(100),
+  firmware_version VARCHAR(50),
+  status VARCHAR(20) DEFAULT 'unknown',     -- 'online', 'offline', 'warning'
+  last_seen TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+)
+
+-- Dati meteo per edificio
+building_weather (
+  id SERIAL PRIMARY KEY,
+  building_id INTEGER REFERENCES buildings(id) ON DELETE CASCADE,
+  temperature DECIMAL(5, 2),                -- Temperatura °C
+  feels_like DECIMAL(5, 2),                 -- Percepita °C
+  humidity INTEGER,                         -- Umidità %
+  pressure INTEGER,                         -- Pressione hPa
+  wind_speed DECIMAL(5, 2),                 -- Vento m/s
+  weather_condition VARCHAR(50),            -- 'clear', 'clouds', 'rain', etc.
+  weather_icon VARCHAR(20),                 -- Icona meteo
+  sunrise TIMESTAMP,
+  sunset TIMESTAMP,
+  fetched_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(building_id, fetched_at)
+)
+
+-- ========================================
+-- TABELLE ESISTENTI (invariate)
+-- ========================================
+
 user_permissions (id, user_id, permission, resource, granted_at)
-devices (id, thing_key, name, type, location, manufacturer, model, firmware_version)
 device_configurations (id, device_id, config_key, config_value, data_type)
 notification_channels (id, name, type, config, enabled)
 alert_rules (id, name, device_id, condition_type, condition_config, severity)
 notifications_log (id, alert_rule_id, channel_id, message, status, sent_at)
 audit_log (id, user_id, action, resource_type, resource_id, details, timestamp)
+```
+
+### Diagramma ER
+
+```
+┌──────────┐       ┌────────────────┐       ┌───────────┐
+│  users   │──────▶│ user_buildings │◀──────│ buildings │
+└──────────┘  N:M  └────────────────┘  N:M  └─────┬─────┘
+                                                  │
+                         ┌────────────────────────┼────────────────────────┐
+                         │                        │                        │
+                         ▼                        ▼                        ▼
+                  ┌───────────┐          ┌────────────────┐       ┌──────────────┐
+                  │  devices  │          │building_weather│       │ alert_rules  │
+                  └───────────┘          └────────────────┘       └──────────────┘
 ```
 
 ### InfluxDB Measurements
@@ -380,12 +637,36 @@ DELETE /api/v1/tasks/{id}      # Revoke task
 GET  /api/v1/tasks/workers/stats  # Stats worker
 ```
 
-### Notifications ✨ NEW
+### Notifications
 ```
 GET  /api/v1/notifications/status       # Stato servizio email
 POST /api/v1/notifications/test         # Invia email di test
 POST /api/v1/notifications/alarm        # Invia notifica allarme
 POST /api/v1/notifications/daily-report # Invia report giornaliero
+```
+
+### Buildings ✨ NEW
+```
+GET    /api/v1/buildings/                    # Lista edifici dell'utente
+POST   /api/v1/buildings/                    # Crea nuovo edificio
+GET    /api/v1/buildings/{id}                # Dettaglio edificio
+PUT    /api/v1/buildings/{id}                # Aggiorna edificio
+DELETE /api/v1/buildings/{id}                # Elimina edificio
+GET    /api/v1/buildings/{id}/devices        # Dispositivi dell'edificio
+POST   /api/v1/buildings/{id}/devices        # Associa dispositivo all'edificio
+DELETE /api/v1/buildings/{id}/devices/{did}  # Rimuovi dispositivo dall'edificio
+GET    /api/v1/buildings/{id}/weather        # Dati meteo edificio
+GET    /api/v1/buildings/{id}/weather/history # Storico meteo
+GET    /api/v1/buildings/{id}/members        # Membri con accesso all'edificio
+POST   /api/v1/buildings/{id}/members        # Invita utente all'edificio
+DELETE /api/v1/buildings/{id}/members/{uid}  # Rimuovi membro
+PUT    /api/v1/buildings/{id}/members/{uid}  # Aggiorna ruolo membro
+```
+
+### Address Autocomplete ✨ NEW
+```
+GET  /api/v1/address/autocomplete?q=...  # Ricerca indirizzi (Google Places API)
+GET  /api/v1/address/details/{place_id}  # Dettagli indirizzo + coordinate
 ```
 
 ---
@@ -426,6 +707,31 @@ Quando crei un nuovo endpoint:
 | cleanup_old_cache | 03:00 UTC | Pulizia cache Redis obsoleta |
 | send_daily_email_report | 19:00 UTC (20:00 CET) | Report giornaliero email |
 | send_weekly_email_report | Dom 09:00 UTC (10:00 CET) | Report settimanale email |
+| **collect_weather_data** ✨ | ogni 15 min | Recupero temperatura per ogni edificio |
+| **cleanup_weather_history** ✨ | ogni 24h | Pulizia dati meteo > 30 giorni |
+
+### Servizio Meteo (Weather Service) ✨ NEW
+
+**Flusso di attivazione:**
+1. L'utente crea un nuovo edificio con indirizzo
+2. Il backend esegue Geocoding (Google) per ottenere lat/lng
+3. Viene registrato un job Celery per quell'edificio
+4. Ogni 15 minuti il task `collect_weather_data` recupera i dati meteo
+
+**Dati recuperati:**
+- Temperatura attuale (°C)
+- Temperatura percepita (°C)
+- Umidità (%)
+- Pressione atmosferica (hPa)
+- Velocità vento (m/s)
+- Condizioni meteo (clear, clouds, rain, snow, etc.)
+- Orari alba/tramonto
+
+**Correlazione Produzione-Meteo:**
+I dati meteo vengono usati per:
+- Mostrare la temperatura attuale nella Dashboard
+- Correlare produzione fotovoltaica con condizioni meteo
+- Previsioni di produzione basate su meteo futuro (roadmap)
 
 ---
 
@@ -475,6 +781,16 @@ AUTH0_CLIENT_SECRET=[SECRET]
 # Email (Resend)
 RESEND_API_KEY=[API_KEY]
 NOTIFICATION_EMAIL=[YOUR_EMAIL]
+
+# Google APIs (per Building) ✨ NEW
+GOOGLE_MAPS_API_KEY=[API_KEY]           # Google Places Autocomplete + Geocoding
+GOOGLE_PLACES_API_KEY=[API_KEY]         # (alternativo, stesso key)
+
+# Weather API (per Building) ✨ NEW
+WEATHER_API_PROVIDER=openweathermap     # 'openweathermap' o 'weatherapi'
+OPENWEATHERMAP_API_KEY=[API_KEY]        # https://openweathermap.org/api
+# oppure
+WEATHERAPI_KEY=[API_KEY]                # https://www.weatherapi.com/
 
 # App
 SECRET_KEY=[GENERATED]
@@ -563,6 +879,9 @@ ENVIRONMENT=production
 | 2025-12-11 | Implementata persistenza Settings in PostgreSQL |
 | 2025-12-11 | Implementati report email automatici (giornaliero + settimanale) |
 | 2025-12-11 | Implementato trigger automatico notifiche su allarmi |
+| **2026-01-03** | **Architettura Building: introduzione entità Edificio come elemento centrale** |
+| **2026-01-03** | **Definito modello Users → Buildings → Devices** |
+| **2026-01-03** | **Aggiunto servizio temperatura per edifici** |
 
 ---
 

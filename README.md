@@ -24,6 +24,41 @@ SunPulse is a comprehensive dashboard for real-time monitoring of solar PV syste
 - 🛡️ **Resilience** - Circuit breaker for fault tolerance
 - 🔐 **Authentication** - Auth0 integration
 - 🐳 **Docker Ready** - Deploy with a single command
+- 🏢 **Multi-Building** - Manage multiple buildings with shared access
+- 🌡️ **Weather Integration** - Real-time temperature and weather data per building
+- 📍 **Google Places** - Address autocomplete and geolocation
+
+---
+
+## 🏢 Data Model
+
+SunPulse uses a **Building-centric architecture** where the building is the central entity:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                        USERS                             │
+│              (Auth0 authenticated users)                 │
+└─────────────────────────────┬───────────────────────────┘
+                              │ N:M (shared access)
+                              ▼
+┌─────────────────────────────────────────────────────────┐
+│                     BUILDINGS                            │
+│   • Name & Address (Google Places Autocomplete)          │
+│   • GPS Coordinates                                      │
+│   • Real-time Weather Data                               │
+└─────────────────────────────┬───────────────────────────┘
+                              │ 1:N
+                              ▼
+┌─────────────────────────────────────────────────────────┐
+│                      DEVICES                             │
+│        (Inverters, Batteries, Smart Meters)              │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Key Features:**
+- Multiple users can access the same building
+- Each building has its own weather service
+- Devices are always associated with a building
 
 ---
 
@@ -55,11 +90,12 @@ SunPulse is a comprehensive dashboard for real-time monitoring of solar PV syste
             │  Worker  │        │   Beat   │
             └──────────┘        └──────────┘
                   │
-                  ▼
-         ┌────────────────┐
-         │  ZCS Azzurro   │
-         │     API        │
-         └────────────────┘
+         ┌───────┴───────┐
+         ▼               ▼
+  ┌────────────┐  ┌────────────┐
+  │ZCS Azzurro │  │ Weather    │
+  │    API     │  │    API     │
+  └────────────┘  └────────────┘
 ```
 
 ---
@@ -116,6 +152,13 @@ ZCS_DEVICE_KEYS=YOUR_DEVICE_KEY
 AUTH0_DOMAIN=your-domain.eu.auth0.com
 AUTH0_CLIENT_ID=your_client_id
 AUTH0_CLIENT_SECRET=your_client_secret
+
+# Google APIs (for Building features)
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+
+# Weather API
+WEATHER_API_PROVIDER=openweathermap
+OPENWEATHERMAP_API_KEY=your_openweathermap_api_key
 
 # Database
 POSTGRES_PASSWORD=your_secure_password
@@ -201,6 +244,24 @@ GET  /api/v1/alarms/           # List alarms
 GET  /api/v1/alarms/summary    # Active alarms summary
 ```
 
+### Buildings
+```
+GET    /api/v1/buildings/              # List user's buildings
+POST   /api/v1/buildings/              # Create building
+GET    /api/v1/buildings/{id}          # Building details
+PUT    /api/v1/buildings/{id}          # Update building
+DELETE /api/v1/buildings/{id}          # Delete building
+GET    /api/v1/buildings/{id}/devices  # Building devices
+GET    /api/v1/buildings/{id}/weather  # Building weather data
+GET    /api/v1/buildings/{id}/members  # Building members
+```
+
+### Address
+```
+GET  /api/v1/address/autocomplete      # Google Places autocomplete
+GET  /api/v1/address/details/{place_id} # Address details + coordinates
+```
+
 ---
 
 ## 🛠️ Tech Stack
@@ -232,6 +293,7 @@ GET  /api/v1/alarms/summary    # Active alarms summary
 | `collect_realtime_data` | 2 min | Production data collection |
 | `collect_alarm_data` | 30 sec | Alarm status check |
 | `health_check_task` | 5 min | System health check |
+| `collect_weather_data` | 15 min | Weather data for each building |
 
 ---
 
