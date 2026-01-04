@@ -71,6 +71,39 @@ class Settings(BaseSettings):
     notification_email: Optional[str] = Field(None, env="NOTIFICATION_EMAIL")
     email_from: str = Field("SunPulse <noreply@sunpulse.app>", env="EMAIL_FROM")
     
+    # Google APIs (for Buildings)
+    GOOGLE_MAPS_API_KEY: Optional[str] = Field(
+        None, 
+        env="GOOGLE_MAPS_API_KEY",
+        description="Google Maps/Places API key for address autocomplete"
+    )
+    
+    # Weather API
+    WEATHER_API_PROVIDER: str = Field(
+        "openweathermap",
+        env="WEATHER_API_PROVIDER",
+        description="Weather API provider: openweathermap or weatherapi"
+    )
+    OPENWEATHERMAP_API_KEY: Optional[str] = Field(
+        None,
+        env="OPENWEATHERMAP_API_KEY",
+        description="OpenWeatherMap API key"
+    )
+    WEATHERAPI_KEY: Optional[str] = Field(
+        None,
+        env="WEATHERAPI_KEY",
+        description="WeatherAPI.com API key"
+    )
+    
+    @property
+    def weather_api_key(self) -> Optional[str]:
+        """Get the appropriate weather API key based on provider"""
+        if self.WEATHER_API_PROVIDER == "openweathermap":
+            return self.OPENWEATHERMAP_API_KEY
+        elif self.WEATHER_API_PROVIDER == "weatherapi":
+            return self.WEATHERAPI_KEY
+        return None
+    
     @property
     def database_url(self) -> str:
         """URL del database PostgreSQL"""
