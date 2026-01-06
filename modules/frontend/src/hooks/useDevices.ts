@@ -4,6 +4,7 @@ import { Device, DeviceFilters, DeviceType, DeviceStatus } from '@/types/device'
 import { DEVICE_TYPES, DEVICE_STATUS } from '@/utils/constants';
 
 interface UseDevicesOptions {
+  buildingId?: number | null;
   filters?: DeviceFilters;
   pagination?: {
     current?: number;
@@ -16,7 +17,29 @@ interface UseDevicesOptions {
 }
 
 export const useDevices = (options: UseDevicesOptions = {}) => {
-  const { filters, pagination, sorters } = options;
+  const { buildingId, filters, pagination, sorters } = options;
+  
+  // Crea filtri combinati con building_id
+  const combinedFilters = useMemo(() => {
+    const baseFilters = filters ? Object.entries(filters)
+      .filter(([_, value]) => value !== undefined && value !== null)
+      .map(([field, value]) => ({
+        field,
+        operator: Array.isArray(value) ? "in" : "eq",
+        value,
+      })) : [];
+    
+    // Aggiungi filtro building_id se specificato
+    if (buildingId) {
+      baseFilters.push({
+        field: 'building_id',
+        operator: 'eq',
+        value: buildingId,
+      });
+    }
+    
+    return baseFilters.length > 0 ? baseFilters : undefined;
+  }, [buildingId, filters]);
 
   // Lista dispositivi con filtri
   const { 
@@ -31,14 +54,11 @@ export const useDevices = (options: UseDevicesOptions = {}) => {
       current: pagination?.current || 1,
       pageSize: pagination?.pageSize || 20,
     },
-    filters: filters ? Object.entries(filters)
-      .filter(([_, value]) => value !== undefined && value !== null)
-      .map(([field, value]) => ({
-        field,
-        operator: Array.isArray(value) ? "in" : "eq",
-        value,
-      })) : undefined,
+    filters: combinedFilters,
     sorters: sorters || [{ field: "name", order: "asc" }],
+    queryOptions: {
+      enabled: buildingId === undefined || buildingId !== null, // Disabilita se buildingId è esplicitamente null
+    },
   });
 
   // FIX: Controllo Array.isArray per evitare errore forEach

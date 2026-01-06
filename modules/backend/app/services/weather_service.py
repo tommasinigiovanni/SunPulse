@@ -165,6 +165,55 @@ class WeatherService:
         else:
             return "clouds"
     
+    async def save_weather_data(
+        self,
+        session: Session,
+        building_id: int,
+        weather_data: Dict[str, Any]
+    ) -> Optional[BuildingWeather]:
+        """
+        Save weather data to database
+        
+        Args:
+            session: Async database session
+            building_id: Building ID
+            weather_data: Weather data dict from fetch_weather()
+            
+        Returns:
+            Created BuildingWeather or None if failed
+        """
+        try:
+            # Create weather record
+            weather = BuildingWeather(
+                building_id=building_id,
+                temperature=weather_data.get("temperature"),
+                feels_like=weather_data.get("feels_like"),
+                temp_min=weather_data.get("temp_min"),
+                temp_max=weather_data.get("temp_max"),
+                humidity=weather_data.get("humidity"),
+                pressure=weather_data.get("pressure"),
+                wind_speed=weather_data.get("wind_speed"),
+                wind_deg=weather_data.get("wind_deg"),
+                wind_gust=weather_data.get("wind_gust"),
+                weather_condition=weather_data.get("weather_condition"),
+                weather_description=weather_data.get("weather_description"),
+                weather_icon=weather_data.get("weather_icon"),
+                clouds=weather_data.get("clouds"),
+                visibility=weather_data.get("visibility"),
+                sunrise=weather_data.get("sunrise"),
+                sunset=weather_data.get("sunset"),
+                fetched_at=datetime.now(timezone.utc)
+            )
+            
+            session.add(weather)
+            await session.flush()
+            
+            return weather
+            
+        except Exception as e:
+            logger.error(f"Error saving weather data: {e}", exc_info=True)
+            return None
+    
     async def update_building_weather(
         self, 
         db: Session, 

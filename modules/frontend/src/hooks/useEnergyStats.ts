@@ -16,7 +16,13 @@ interface EnergyStats {
   gridExport: number;
 }
 
-export const useEnergyStats = () => {
+interface UseEnergyStatsOptions {
+  buildingId?: number | null;
+}
+
+export const useEnergyStats = (options: UseEnergyStatsOptions = {}) => {
+  const { buildingId } = options;
+  
   const [stats, setStats] = useState<EnergyStats>({
     today: 0,
     yesterday: 0,
@@ -32,10 +38,11 @@ export const useEnergyStats = () => {
 
   // Fetch oggi
   const { data: todayData } = useQuery({
-    queryKey: ['energy-stats', 'today'],
+    queryKey: ['energy-stats', 'today', buildingId],
     queryFn: async () => {
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      // TODO: Aggiungere parametro building_id alla chiamata API quando sarà implementato
       return apiClient.getSystemHistoricalData(
         startOfDay.toISOString(),
         now.toISOString(),
@@ -43,17 +50,19 @@ export const useEnergyStats = () => {
         'energy'
       );
     },
+    enabled: buildingId === undefined || buildingId !== null,
     refetchInterval: UPDATE_INTERVALS.REALTIME,
     staleTime: UPDATE_INTERVALS.REALTIME / 2,
   });
 
   // Fetch ieri
   const { data: yesterdayData } = useQuery({
-    queryKey: ['energy-stats', 'yesterday'],
+    queryKey: ['energy-stats', 'yesterday', buildingId],
     queryFn: async () => {
       const now = new Date();
       const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
       const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      // TODO: Aggiungere parametro building_id alla chiamata API quando sarà implementato
       return apiClient.getSystemHistoricalData(
         startOfYesterday.toISOString(),
         endOfYesterday.toISOString(),
@@ -61,16 +70,18 @@ export const useEnergyStats = () => {
         'energy'
       );
     },
+    enabled: buildingId === undefined || buildingId !== null,
     refetchInterval: UPDATE_INTERVALS.DEVICES,
     staleTime: UPDATE_INTERVALS.DEVICES / 2,
   });
 
   // Fetch settimana scorsa
   const { data: lastWeekData } = useQuery({
-    queryKey: ['energy-stats', 'lastWeek'],
+    queryKey: ['energy-stats', 'lastWeek', buildingId],
     queryFn: async () => {
       const now = new Date();
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      // TODO: Aggiungere parametro building_id alla chiamata API quando sarà implementato
       return apiClient.getSystemHistoricalData(
         sevenDaysAgo.toISOString(),
         now.toISOString(),
@@ -78,6 +89,7 @@ export const useEnergyStats = () => {
         'energy'
       );
     },
+    enabled: buildingId === undefined || buildingId !== null,
     refetchInterval: UPDATE_INTERVALS.DEVICES,
     staleTime: UPDATE_INTERVALS.DEVICES,
   });

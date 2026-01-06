@@ -87,6 +87,18 @@ celery_app.conf.beat_schedule = {
         'task': 'app.services.data_collector.send_weekly_email_report',
         'schedule': crontab(hour=9, minute=0, day_of_week=0),  # Domenica 09:00 UTC = 10:00 CET
     },
+    
+    # Raccolta dati meteo per tutti gli edifici ogni 15 minuti
+    'collect-weather-data': {
+        'task': 'app.services.data_collector.collect_weather_data',
+        'schedule': 900.0,  # 15 minuti
+    },
+    
+    # Pulizia storico meteo (> 30 giorni) ogni giorno alle 04:00
+    'cleanup-weather-history': {
+        'task': 'app.services.data_collector.cleanup_weather_history',
+        'schedule': crontab(hour=4, minute=0),  # 04:00 UTC
+    },
 }
 
 class DataCollectionError(Exception):
@@ -826,3 +838,174 @@ async def _send_weekly_email_report_async() -> Dict[str, Any]:
     except Exception as e:
         logger.error("Error in weekly email report", error=str(e))
         return {"success": False, "error": str(e), "sent": emails_sent}
+
+
+# ============================================================================
+# Weather Data Collection Tasks
+# ============================================================================
+
+@celery_app.task(bind=True, max_retries=2)
+def collect_weather_data(self):
+    """Task Celery: Raccolta dati meteo per tutti gli edifici"""
+    task_id = self.request.id
+    start_time = datetime.utcnow()
+    
+    logger.info("Starting weather data collection", task_id=task_id)
+    
+    try:
+        result = asyncio.run(_collect_weather_data_async())
+        
+        duration = (datetime.utcnow() - start_time).total_seconds()
+        logger.info(
+            "Weather data collection completed",
+            task_id=task_id,
+            duration_seconds=duration,
+            **result
+        )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(
+            "Weather data collection failed",
+            task_id=task_id,
+            error=str(e),
+            retry_count=self.request.retries
+        )
+        
+        countdown = 2 ** self.request.retries
+        raise self.retry(exc=e, countdown=countdown, max_retries=2)
+
+
+async def _collect_weather_data_async() -> Dict[str, Any]:
+    """Implementazione async della raccolta dati meteo"""
+    from ..services.weather_service import WeatherService
+    from ..services.database import get_db_session
+    from ..models.building import Building, BuildingWeather
+    from sqlalchemy import select
+    
+    weather_service = WeatherService()
+    buildings_processed = 0
+    errors = 0
+    error_messages = []
+    
+    try:
+        # Ottieni tutti gli edifici con coordinate GPS
+        async with get_db_session() as session:
+            result = await session.execute(
+                select(Building).where(
+                    Building.latitude.isnot(None),
+                    Building.longitude.isnot(None)
+                )
+            )
+            buildings = result.scalars().all()
+            
+            logger.info(f"Found {len(buildings)} buildings with GPS coordinates")
+            
+            # Fetch weather per ogni edificio
+            for building in buildings:
+                try:
+                    weather_data = await weather_service.fetch_weather(
+                        latitude=building.latitude,
+                        longitude=building.longitude
+                    )
+                    
+                    if weather_data:
+                        # Salva dati meteo nel database
+                        await weather_service.save_weather_data(
+                            session=session,
+                            building_id=building.id,
+                            weather_data=weather_data
+                        )
+                        
+                        buildings_processed += 1
+                        
+                        logger.debug(
+                            "Weather data saved",
+                            building_id=building.id,
+                            building_name=building.name,
+                            temperature=weather_data.get("temperature")
+                        )
+                    else:
+                        errors += 1
+                        error_messages.append(f"Building {building.id}: No weather data")
+                        
+                except Exception as e:
+                    errors += 1
+                    error_messages.append(f"Building {building.id}: {str(e)}")
+                    logger.error(
+                        "Error fetching weather for building",
+                        building_id=building.id,
+                        error=str(e)
+                    )
+            
+            await session.commit()
+        
+        return {
+            "buildings_processed": buildings_processed,
+            "errors": errors,
+            "error_messages": error_messages if error_messages else None,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error("Error in weather data collection", error=str(e), exc_info=True)
+        return {
+            "buildings_processed": buildings_processed,
+            "errors": errors + 1,
+            "error_messages": [str(e)],
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+
+@celery_app.task(bind=True)
+def cleanup_weather_history(self):
+    """Task Celery: Pulizia storico meteo più vecchio di 30 giorni"""
+    task_id = self.request.id
+    logger.info("Starting weather history cleanup", task_id=task_id)
+    
+    try:
+        result = asyncio.run(_cleanup_weather_history_async())
+        logger.info("Weather history cleanup completed", task_id=task_id, **result)
+        return result
+        
+    except Exception as e:
+        logger.error("Weather history cleanup failed", task_id=task_id, error=str(e))
+        return {"success": False, "error": str(e)}
+
+
+async def _cleanup_weather_history_async() -> Dict[str, Any]:
+    """Implementazione async della pulizia storico meteo"""
+    from ..services.database import get_db_session
+    from ..models.building import BuildingWeather
+    from sqlalchemy import delete
+    
+    try:
+        # Elimina record più vecchi di 30 giorni
+        cutoff_date = datetime.utcnow() - timedelta(days=30)
+        
+        async with get_db_session() as session:
+            result = await session.execute(
+                delete(BuildingWeather).where(
+                    BuildingWeather.fetched_at < cutoff_date
+                )
+            )
+            
+            deleted_count = result.rowcount
+            await session.commit()
+            
+            logger.info(
+                "Weather history cleaned up",
+                deleted_records=deleted_count,
+                cutoff_date=cutoff_date.isoformat()
+            )
+            
+            return {
+                "success": True,
+                "deleted_records": deleted_count,
+                "cutoff_date": cutoff_date.isoformat()
+            }
+            
+    except Exception as e:
+        logger.error("Error cleaning up weather history", error=str(e), exc_info=True)
+        return {"success": False, "error": str(e)}

@@ -1,7 +1,7 @@
 # ☀️ SunPulse - Context File
-> **Data ultimo aggiornamento:** 2026-01-03  
-> **Versione progetto:** v2.2.0  
-> **Stato:** Fase 3 completata, deploy HTTPS attivo, architettura Building in sviluppo, notifiche email automatiche attive
+> **Data ultimo aggiornamento:** 2026-01-06  
+> **Versione progetto:** v2.3.0  
+> **Stato:** Fase 5 in corso - Implementazione frontend architettura Building, backend completato, Google Maps integration in sviluppo
 
 ---
 
@@ -228,6 +228,18 @@ POST /api/v1/onboarding/validate-device  # Valida thing_key dispositivo
 - [ ] Performance optimization
 - [ ] Monitoring Prometheus/Grafana
 - [ ] CI/CD pipeline
+
+### Fase 5 - Building Architecture 🚀 IN CORSO (2026-01-06)
+- [x] Database: tabelle buildings, user_buildings, building_weather ✅ 2026-01-03
+- [x] Backend API: CRUD edifici completo ✅ 2026-01-03
+- [x] Services: GooglePlacesService, WeatherService ✅ 2026-01-03
+- [x] Wizard Backend: OnboardingService, API endpoints ✅ 2026-01-03
+- [ ] Frontend: Configurazione Google Maps API
+- [ ] Frontend: Componente AddressAutocomplete
+- [ ] Frontend: Pagina BuildingOnboarding
+- [ ] Task Celery: Raccolta meteo automatica ogni 15min
+- [ ] Frontend: Selettore edificio nel Header
+- [ ] Frontend: Hook aggiornati per building_id
 
 ---
 

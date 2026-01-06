@@ -8,6 +8,21 @@
     <meta name="description" content="SunPulse - Dashboard per monitoraggio impianti fotovoltaici" />
     <meta name="theme-color" content="#1890ff" />
     <title>SunPulse</title>
+    
+    <!-- Google Maps JavaScript API -->
+    <script>
+      // Carica Google Maps API dinamicamente solo se API key disponibile
+      (function() {
+        const apiKey = import.meta.env?.VITE_GOOGLE_MAPS_API_KEY;
+        if (apiKey && apiKey !== 'your-google-maps-api-key') {
+          const script = document.createElement('script');
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=it`;
+          script.async = true;
+          script.defer = true;
+          document.head.appendChild(script);
+        }
+      })();
+    </script>
     <style>
       #loading-screen {
         position: fixed;

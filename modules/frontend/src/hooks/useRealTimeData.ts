@@ -5,6 +5,7 @@ import { RealTimeData, RealTimeDataResponse } from '@/types/api';
 import { UPDATE_INTERVALS, WS_EVENTS } from '@/utils/constants';
 
 interface UseRealTimeDataOptions {
+  buildingId?: number | null;
   deviceIds?: string[];
   enableWebSocket?: boolean;
   pollingInterval?: number;
@@ -18,6 +19,7 @@ interface WebSocketState {
 
 export const useRealTimeData = (options: UseRealTimeDataOptions = {}) => {
   const {
+    buildingId,
     deviceIds,
     enableWebSocket = import.meta.env.VITE_ENABLE_REALTIME === 'true',
     pollingInterval = UPDATE_INTERVALS.REALTIME,
@@ -38,8 +40,9 @@ export const useRealTimeData = (options: UseRealTimeDataOptions = {}) => {
     error: pollingError,
     refetch 
   } = useQuery({
-    queryKey: ['realtime-data', deviceIds],
+    queryKey: ['realtime-data', buildingId, deviceIds],
     queryFn: () => apiClient.getRealTimeData(deviceIds),
+    enabled: buildingId === undefined || buildingId !== null,
     refetchInterval: enableWebSocket ? false : pollingInterval,
     staleTime: pollingInterval / 2,
     retry: 3,

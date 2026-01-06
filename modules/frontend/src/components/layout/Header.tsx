@@ -1,5 +1,5 @@
-import React from 'react';
-import { Layout, Avatar, Dropdown, Space, Typography, Button } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Layout, Avatar, Dropdown, Space, Typography, Button, Select, Spin } from 'antd';
 import { 
   UserOutlined, 
   LogoutOutlined, 
@@ -7,10 +7,15 @@ import {
   BellOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  WifiOutlined
+  WifiOutlined,
+  HomeOutlined,
+  PlusOutlined,
+  EnvironmentOutlined
 } from '@ant-design/icons';
 import { useAuth } from '@/hooks/useAuth';
 import { useRealTimeData } from '@/hooks/useRealTimeData';
+import { useBuildings } from '@/hooks/useBuildings';
+import { useNavigate } from 'react-router-dom';
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;
@@ -23,9 +28,36 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ collapsed, onCollapse }) => {
   const { user, logout, isAuthenticated } = useAuth();
   const { isWebSocketConnected, summary } = useRealTimeData();
+  const { data: buildings, isLoading: buildingsLoading } = useBuildings();
+  const navigate = useNavigate();
   
   // WebSocket è disabilitato se VITE_ENABLE_REALTIME è false
   const isRealtimeEnabled = import.meta.env.VITE_ENABLE_REALTIME === 'true';
+  
+  // Stato edificio selezionato (salvato in localStorage)
+  const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(() => {
+    const saved = localStorage.getItem('selectedBuildingId');
+    return saved ? parseInt(saved, 10) : null;
+  });
+  
+  // Auto-seleziona primo edificio se non c'è selezione
+  useEffect(() => {
+    if (buildings && buildings.length > 0 && !selectedBuildingId) {
+      setSelectedBuildingId(buildings[0].id);
+      localStorage.setItem('selectedBuildingId', buildings[0].id.toString());
+    }
+  }, [buildings, selectedBuildingId]);
+  
+  // Trova edificio selezionato
+  const selectedBuilding = buildings?.find(b => b.id === selectedBuildingId);
+  
+  // Handler cambio edificio
+  const handleBuildingChange = (buildingId: number) => {
+    setSelectedBuildingId(buildingId);
+    localStorage.setItem('selectedBuildingId', buildingId.toString());
+    // Ricarica la pagina per aggiornare i dati
+    window.location.reload();
+  };
 
   const userMenuItems = [
     {
@@ -135,6 +167,43 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onCollapse }) => {
 
       {/* Right Side */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        {/* Building Selector */}
+        {isAuthenticated && buildings && buildings.length > 0 && (
+          <Select
+            value={selectedBuildingId}
+            onChange={handleBuildingChange}
+            loading={buildingsLoading}
+            style={{ minWidth: 200 }}
+            size="middle"
+            suffixIcon={<HomeOutlined />}
+            dropdownRender={(menu) => (
+              <>
+                {menu}
+                <div style={{ padding: '8px', borderTop: '1px solid #f0f0f0' }}>
+                  <Button
+                    type="text"
+                    icon={<PlusOutlined />}
+                    block
+                    onClick={() => navigate('/buildings/new')}
+                    style={{ textAlign: 'left' }}
+                  >
+                    Nuovo Edificio
+                  </Button>
+                </div>
+              </>
+            )}
+          >
+            {buildings.map((building) => (
+              <Select.Option key={building.id} value={building.id}>
+                <Space>
+                  <EnvironmentOutlined />
+                  <span>{building.name}</span>
+                </Space>
+              </Select.Option>
+            ))}
+          </Select>
+        )}
+
         {/* Quick Stats - nascosti su mobile */}
         {summary && (
           <div
