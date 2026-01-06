@@ -409,13 +409,18 @@ class AlarmDataPoint(BaseModel):
 # Utility Functions
 # ==============================================================================
 
-def parse_zcs_realtime_to_models(zcs_data: Dict[str, Any], device_key: str) -> List[DeviceDataPoint]:
+def parse_zcs_realtime_to_models(
+    zcs_data: Dict[str, Any], 
+    device_key: str,
+    building_id: Optional[int] = None
+) -> List[DeviceDataPoint]:
     """
     Converte dati ZCS realtime in modelli dati
     
     Args:
         zcs_data: Dati grezzi da ZCS API
         device_key: Chiave dispositivo
+        building_id: ID edificio (opzionale, per tag InfluxDB)
         
     Returns:
         Lista di DeviceDataPoint
@@ -439,7 +444,12 @@ def parse_zcs_realtime_to_models(zcs_data: Dict[str, Any], device_key: str) -> L
             current=realtime.get("current"),
             timestamp=timestamp
         )
-        data_points.append(power_data.to_influx_point())
+        
+        # Converti in InfluxDB point e aggiungi building_id tag
+        point = power_data.to_influx_point()
+        if building_id is not None:
+            point["tags"]["building_id"] = str(building_id)
+        data_points.append(point)
         
         # Battery data se presente
         if "battery" in realtime:
@@ -450,7 +460,12 @@ def parse_zcs_realtime_to_models(zcs_data: Dict[str, Any], device_key: str) -> L
                 temperature=realtime["battery"].get("temperature"),
                 timestamp=timestamp
             )
-            data_points.append(battery_data.to_influx_point())
+            
+            # Converti in InfluxDB point e aggiungi building_id tag
+            point = battery_data.to_influx_point()
+            if building_id is not None:
+                point["tags"]["building_id"] = str(building_id)
+            data_points.append(point)
     
     return data_points 
 

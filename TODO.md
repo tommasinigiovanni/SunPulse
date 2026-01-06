@@ -113,9 +113,12 @@
   - **Effort**: 2h
   - **Priorità**: ⚠️ Alto
 
-- [ ] **[BUILD-014]** Aggiornare DataCollector per filtrare per building_id
-  - I dati raccolti devono essere associati all'edificio
-  - Aggiornare query InfluxDB per includere building_id come tag
+- [x] **[BUILD-014]** Aggiornare DataCollector per filtrare per building_id ✅ 2026-01-06
+  - I dati raccolti sono ora associati all'edificio
+  - Query InfluxDB includono building_id come tag
+  - Aggiornato `_collect_realtime_data_async()` per recuperare devices da DB
+  - Aggiornato `parse_zcs_realtime_to_models()` per accettare building_id
+  - Tag `building_id` aggiunto a tutti i data points InfluxDB
   - **Effort**: 3h
   - **Priorità**: ⚠️ Alto
 
@@ -148,7 +151,7 @@
   - **Effort**: 2h
   - **Priorità**: ⚠️ Alto
 
-- [ ] **[BUILD-018]** Pagina gestione edifici
+- [x] **[BUILD-018]** Pagina gestione edifici ✅ 2026-01-06
   - Lista edifici con card
   - Modifica nome/indirizzo
   - Gestione membri (invita/rimuovi)
@@ -157,10 +160,11 @@
   - **Effort**: 6h
   - **Priorità**: ⚠️ Alto
 
-- [ ] **[BUILD-019]** Aggiornare Dashboard per mostrare temperatura edificio
+- [x] **[BUILD-019]** Aggiornare Dashboard per mostrare temperatura edificio ✅ 2026-01-06
   - Card meteo con temperatura attuale
   - Icona condizioni meteo
   - Correlazione produzione/temperatura
+  - File: `modules/frontend/src/components/weather/WeatherCard.tsx`
   - **Effort**: 2h
   - **Priorità**: 🟡 Medio
 
@@ -181,12 +185,85 @@
   - **Effort**: 0.5h
   - **Priorità**: 🔴 Critico
 
-- [ ] **[BUILD-022]** Aggiungere variabili ambiente per Weather API
+- [x] **[BUILD-022]** Aggiungere variabili ambiente per Weather API ✅ 2026-01-06
   - `WEATHER_API_PROVIDER` (openweathermap/weatherapi)
   - `OPENWEATHERMAP_API_KEY` o `WEATHERAPI_KEY`
-  - Aggiornare `.env.example`
+  - Creato `.env.example` completo nella root del progetto
+  - Documentate tutte le variabili ambiente richieste
   - **Effort**: 0.5h
   - **Priorità**: ⚠️ Alto
+
+---
+
+## 🌞 INTEGRAZIONE GOOGLE SOLAR API (FASE 4 - OPZIONALE)
+
+> **Nuova funzionalità:** Integrazione con Google Solar API per analisi potenziale solare
+> 
+> Google Solar API fornisce dati dettagliati sul potenziale di produzione solare degli edifici, inclusi:
+> - Potenziale energetico annuale stimato
+> - Numero ottimale di pannelli installabili
+> - Mappe di irraggiamento e ombreggiatura
+> - Stima costi e risparmi
+
+### Backend - Google Solar Service
+
+- [ ] **[SOLAR-001]** Creare GoogleSolarService
+  - Endpoint `buildingInsights` - Potenziale solare edificio
+  - Endpoint `dataLayers` - Dati solari grezzi per area
+  - Endpoint `geoTiff` - Raster con informazioni solari
+  - Cache risultati (dati cambiano raramente)
+  - File: `modules/backend/app/services/google_solar_service.py`
+  - **Effort**: 3h
+  - **Priorità**: 🟢 Basso (opzionale)
+
+- [ ] **[SOLAR-002]** API Endpoints per Solar Data
+  - `GET /api/v1/buildings/{id}/solar-potential` - Potenziale solare edificio
+  - `GET /api/v1/buildings/{id}/solar-layers` - Layer dati solari
+  - `GET /api/v1/buildings/{id}/solar-comparison` - Confronto reale vs teorico
+  - File: `modules/backend/app/api/v1/endpoints/solar.py`
+  - **Effort**: 2h
+  - **Priorità**: 🟢 Basso (opzionale)
+
+### Frontend - Solar UI Components
+
+- [ ] **[SOLAR-003]** Componente SolarPotentialCard
+  - Card "Potenziale Solare" con KPI
+  - Visualizzazione pannelli installabili
+  - Stima produzione annuale teorica
+  - Confronto produzione reale vs teorica (se disponibile)
+  - Efficienza impianto (% del potenziale raggiunto)
+  - File: `modules/frontend/src/components/solar/SolarPotentialCard.tsx`
+  - **Effort**: 3h
+  - **Priorità**: 🟢 Basso (opzionale)
+
+- [ ] **[SOLAR-004]** Onboarding con Solar Insights
+  - Mostrare potenziale solare durante creazione edificio
+  - Preview: "Il tuo tetto può produrre fino a X kWh/anno"
+  - Stima ROI e payback period
+  - Visualizzazione ottimizzazione posizionamento pannelli
+  - File: aggiornare `modules/frontend/src/pages/BuildingOnboarding.tsx`
+  - **Effort**: 3h
+  - **Priorità**: 🟢 Basso (opzionale)
+
+- [ ] **[SOLAR-005]** Dashboard Analytics con Solar Data
+  - Grafico confronto produzione reale vs potenziale
+  - Alert se produzione < 80% del potenziale
+  - Suggerimenti ottimizzazione
+  - Analisi ombreggiamento per stagione
+  - File: aggiornare `modules/frontend/src/pages/Dashboard.tsx`
+  - **Effort**: 2h
+  - **Priorità**: 🟢 Basso (opzionale)
+
+### Configurazione
+
+- [ ] **[SOLAR-006]** Documentazione Google Solar API
+  - Guida setup Solar API
+  - Configurazione API key
+  - Esempi request/response
+  - Stima costi ($0.05/richiesta)
+  - File: `doc/GOOGLE_SOLAR_API_SETUP.md`
+  - **Effort**: 1h
+  - **Priorità**: 🟢 Basso (opzionale)
 
 - [x] **[BUILD-023]** Configurare Google Maps JS API nel frontend ✅ 2026-01-06
   - Script Google Maps aggiunto in `index.html` (caricamento dinamico)
@@ -723,18 +800,19 @@
 |-----------|------|--------|--------|
 | Database & Models | BUILD-001 → BUILD-005 | ✅ 5/5 completati | ~5h |
 | API Endpoints | BUILD-006 → BUILD-010 | ✅ 5/5 completati | ~11h |
-| Services | BUILD-011 → BUILD-014 | ⚠️ 3/4 completati | ~9h |
+| Services | BUILD-011 → BUILD-014 | ✅ 4/4 completati | ~9h |
 | Frontend | BUILD-015 → BUILD-020 | ✅ 6/6 completati | ~23h |
 | Configurazione | BUILD-021 → BUILD-023 | ✅ 3/3 completati | ~2h |
-| **TOTALE** | **23 task** | **22/23 (96%)** | **~50h** |
+| **TOTALE** | **23 task** | **23/23 (100%)** | **~50h** |
 
-**Fase 1 MVP:** ✅ **COMPLETATA** (2026-01-06)
+**Fase 1 MVP:** ✅ **COMPLETATA AL 100%** (2026-01-06)
 - ✅ Google Maps integration
 - ✅ Building onboarding page
 - ✅ Building selector in Header
 - ✅ Hook aggiornati per building_id
 - ✅ Task Celery meteo automatico
-- ⏳ DataCollector filtro building_id (da completare)
+- ✅ DataCollector filtro building_id
+- ✅ Variabili ambiente configurate
 
 ### 🧙 Wizard Onboarding Breakdown
 

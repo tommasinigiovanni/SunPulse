@@ -139,21 +139,43 @@ def collect_realtime_data(self):
 
 async def _collect_realtime_data_async() -> Dict[str, Any]:
     """Implementazione async della raccolta dati realtime"""
+    from ..services.database import get_db_session
+    from ..models.device import Device as DeviceModel
+    from sqlalchemy import select
+    
     zcs_service = await get_zcs_service()
     cache_service = await get_cache_service()
     
-    # Ottieni dispositivi configurati
-    settings = get_settings()
-    thing_keys = settings.device_thing_keys
+    # Ottieni dispositivi dal database (con building_id)
+    async with get_db_session() as session:
+        result = await session.execute(
+            select(DeviceModel).where(DeviceModel.thing_key.isnot(None))
+        )
+        devices_db = result.scalars().all()
     
-    if not thing_keys:
-        logger.warning("No device thingKeys configured")
-        return {
-            "devices_processed": 0,
-            "total_data_points": 0,
-            "errors": 1,
-            "error_message": "No devices configured"
+    if not devices_db:
+        # Fallback: usa configurazione settings
+        settings = get_settings()
+        thing_keys = settings.device_thing_keys
+        
+        if not thing_keys:
+            logger.warning("No devices configured in database or settings")
+            return {
+                "devices_processed": 0,
+                "total_data_points": 0,
+                "errors": 1,
+                "error_message": "No devices configured"
+            }
+        
+        # Crea mapping thing_key -> building_id (None se da settings)
+        device_map = {tk: None for tk in thing_keys}
+    else:
+        # Crea mapping thing_key -> building_id
+        device_map = {
+            device.thing_key: device.building_id 
+            for device in devices_db
         }
+        thing_keys = list(device_map.keys())
     
     # Ottieni dati realtime da ZCS API
     zcs_result = await zcs_service.get_realtime_data(thing_keys)
@@ -171,8 +193,15 @@ async def _collect_realtime_data_async() -> Dict[str, Any]:
             device_data = zcs_result['data'].get(thing_key)
             
             if device_data:
+                # Ottieni building_id per questo dispositivo
+                building_id = device_map.get(thing_key)
+                
                 # Converte dati ZCS in data points
-                data_points = parse_zcs_realtime_to_models(device_data, thing_key)
+                data_points = parse_zcs_realtime_to_models(
+                    device_data, 
+                    thing_key,
+                    building_id=building_id  # Passa building_id
+                )
                 
                 if data_points:
                     total_data_points += len(data_points)
@@ -182,6 +211,13 @@ async def _collect_realtime_data_async() -> Dict[str, Any]:
                     await cache_service.set(cache_key, device_data, DataType.REALTIME)
                 
                 processed_devices += 1
+                
+                logger.debug(
+                    "Device data processed",
+                    thing_key=thing_key,
+                    building_id=building_id,
+                    data_points=len(data_points) if data_points else 0
+                )
             
         except Exception as e:
             logger.error(

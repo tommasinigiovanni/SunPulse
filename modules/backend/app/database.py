@@ -41,9 +41,15 @@ def init_sync_db():
             echo=False,
         )
 
-        # Create tables if they don't exist
-        Base.metadata.create_all(bind=_engine)
-        logger.info("Synchronous database engine initialized and tables created")
+        # Create tables if they don't exist (with checkfirst=True by default)
+        # Wrap in try/except to handle race conditions with migrations
+        try:
+            Base.metadata.create_all(bind=_engine, checkfirst=True)
+            logger.info("Synchronous database engine initialized and tables checked")
+        except Exception as e:
+            # If tables already exist from migrations, that's fine
+            logger.warning(f"Table creation skipped (likely already exist): {e}")
+            logger.info("Synchronous database engine initialized (tables already exist)")
 
         # Create session factory
         _SessionLocal = sessionmaker(

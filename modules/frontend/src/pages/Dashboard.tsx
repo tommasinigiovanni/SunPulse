@@ -15,9 +15,11 @@ import {
   ClockCircleOutlined
 } from '@ant-design/icons';
 import { PowerChart } from '@/components/charts/PowerChart';
+import { WeatherCard } from '@/components/weather/WeatherCard';
 import { useRealTimeData } from '@/hooks/useRealTimeData';
 import { useDevices } from '@/hooks/useDevices';
 import { useEnergyStats } from '@/hooks/useEnergyStats';
+import { useSelectedBuilding } from '@/hooks/useSelectedBuilding';
 import { formatPower, formatEnergy, formatCurrency, formatCO2 } from '@/utils/formatters';
 
 const { Title, Text } = Typography;
@@ -28,6 +30,7 @@ export const Dashboard: React.FC = () => {
   const { data: realTimeData, summary, isLoading: realTimeLoading, refreshData, lastUpdate } = useRealTimeData();
   const { devices, stats, energyStats, refetch: refetchDevices } = useDevices();
   const { stats: energyStatsReal, isLoading: energyStatsLoading } = useEnergyStats();
+  const { selectedBuilding, isLoading: buildingLoading } = useSelectedBuilding();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -69,7 +72,7 @@ export const Dashboard: React.FC = () => {
       if (Array.isArray(devices)) {
         devices.forEach((device) => {
           options.push({
-            value: device.id,
+            value: String(device.id),
             label: `⚡ ${device.name || `Dispositivo ${device.id}`}`,
           });
         });
@@ -264,8 +267,18 @@ export const Dashboard: React.FC = () => {
         </Col>
       </Row>
 
-      {/* Bilancio Energetico Giornaliero */}
+      {/* Meteo e Bilancio Energetico */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        {/* Card Meteo */}
+        <Col xs={24} lg={8}>
+          <WeatherCard
+            weather={selectedBuilding?.current_weather}
+            isLoading={buildingLoading}
+            showCorrelation={true}
+            currentPower={dashboardMetrics.currentPower}
+          />
+        </Col>
+
         {/* Consumo Giornaliero */}
         <Col xs={24} lg={8}>
           <Card 

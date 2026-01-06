@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import { axiosInstance } from '../utils/api';
 import type {
   Building,
   BuildingListResponse,
@@ -17,8 +17,6 @@ import type {
   InviteMemberRequest,
   UpdateMemberRoleRequest,
 } from '../types/building';
-
-const API_URL = import.meta.env.VITE_API_URL;
 
 // ============================================================================
 // Query Keys
@@ -40,60 +38,60 @@ export const buildingKeys = {
 // ============================================================================
 
 const fetchBuildings = async (): Promise<Building[]> => {
-  const { data } = await axios.get<BuildingListResponse>(`${API_URL}/buildings/`);
+  const { data } = await axiosInstance.get<BuildingListResponse>('/buildings/');
   return data.buildings;
 };
 
 const fetchBuilding = async (id: number): Promise<Building> => {
-  const { data } = await axios.get<Building>(`${API_URL}/buildings/${id}`);
+  const { data } = await axiosInstance.get<Building>(`/buildings/${id}`);
   return data;
 };
 
 const createBuilding = async (building: CreateBuildingRequest): Promise<Building> => {
-  const { data } = await axios.post<Building>(`${API_URL}/buildings/`, building);
+  const { data } = await axiosInstance.post<Building>('/buildings/', building);
   return data;
 };
 
 const updateBuilding = async ({ id, ...building }: UpdateBuildingRequest & { id: number }): Promise<Building> => {
-  const { data } = await axios.put<Building>(`${API_URL}/buildings/${id}`, building);
+  const { data } = await axiosInstance.put<Building>(`/buildings/${id}`, building);
   return data;
 };
 
 const deleteBuilding = async (id: number): Promise<void> => {
-  await axios.delete(`${API_URL}/buildings/${id}`);
+  await axiosInstance.delete(`/buildings/${id}`);
 };
 
 const fetchBuildingDevices = async (buildingId: number) => {
-  const { data } = await axios.get<BuildingDevicesResponse>(`${API_URL}/buildings/${buildingId}/devices`);
+  const { data } = await axiosInstance.get<BuildingDevicesResponse>(`/buildings/${buildingId}/devices`);
   return data.devices;
 };
 
 const addDeviceToBuilding = async ({ buildingId, ...device }: AddDeviceToBuildingRequest & { buildingId: number }) => {
-  const { data } = await axios.post(`${API_URL}/buildings/${buildingId}/devices`, device);
+  const { data } = await axiosInstance.post(`/buildings/${buildingId}/devices`, device);
   return data;
 };
 
 const removeDeviceFromBuilding = async ({ buildingId, deviceId }: { buildingId: number; deviceId: number }) => {
-  await axios.delete(`${API_URL}/buildings/${buildingId}/devices/${deviceId}`);
+  await axiosInstance.delete(`/buildings/${buildingId}/devices/${deviceId}`);
 };
 
 const fetchBuildingMembers = async (buildingId: number) => {
-  const { data } = await axios.get<BuildingMembersResponse>(`${API_URL}/buildings/${buildingId}/members`);
+  const { data } = await axiosInstance.get<BuildingMembersResponse>(`/buildings/${buildingId}/members`);
   return data.members;
 };
 
 const inviteMember = async ({ buildingId, ...member }: InviteMemberRequest & { buildingId: number }) => {
-  const { data } = await axios.post(`${API_URL}/buildings/${buildingId}/members`, member);
+  const { data } = await axiosInstance.post(`/buildings/${buildingId}/members`, member);
   return data;
 };
 
 const updateMemberRole = async ({ buildingId, userId, ...role }: UpdateMemberRoleRequest & { buildingId: number; userId: number }) => {
-  const { data } = await axios.put(`${API_URL}/buildings/${buildingId}/members/${userId}`, role);
+  const { data } = await axiosInstance.put(`/buildings/${buildingId}/members/${userId}`, role);
   return data;
 };
 
 const removeMember = async ({ buildingId, userId }: { buildingId: number; userId: number }) => {
-  await axios.delete(`${API_URL}/buildings/${buildingId}/members/${userId}`);
+  await axiosInstance.delete(`/buildings/${buildingId}/members/${userId}`);
 };
 
 // ============================================================================

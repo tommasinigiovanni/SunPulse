@@ -9,7 +9,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Input, Card, List, Spin, Alert, Typography } from 'antd';
 import { EnvironmentOutlined, LoadingOutlined } from '@ant-design/icons';
 import type { PlacePrediction, AddressDetailsResponse } from '../../types/building';
-import axios from 'axios';
+import { axiosInstance } from '../../utils/api';
+import { loadGoogleMapsAPI, isGoogleMapsLoaded } from '../../utils/googleMaps';
 
 const { Text } = Typography;
 
@@ -36,19 +37,36 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   const [selectedDetails, setSelectedDetails] = useState<AddressDetailsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPredictions, setShowPredictions] = useState(false);
+  const [googleMapsReady, setGoogleMapsReady] = useState(false);
   
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Carica Google Maps API
+  useEffect(() => {
+    const initGoogleMaps = async () => {
+      try {
+        if (!isGoogleMapsLoaded()) {
+          await loadGoogleMapsAPI();
+        }
+        setGoogleMapsReady(true);
+      } catch (error) {
+        console.warn('Google Maps API non disponibile:', error);
+        setError('Google Maps non disponibile. La ricerca indirizzo potrebbe non funzionare.');
+      }
+    };
+    
+    initGoogleMaps();
+  }, []);
+
   // Inizializza la mappa
   useEffect(() => {
-    if (!showMap || !mapRef.current) return;
+    if (!showMap || !mapRef.current || !googleMapsReady) return;
 
     // Verifica che Google Maps sia caricato
     if (typeof google === 'undefined' || !google.maps) {
-      console.warn('Google Maps API non caricata');
       return;
     }
 
@@ -74,7 +92,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     return () => {
       marker.setMap(null);
     };
-  }, [showMap]);
+  }, [showMap, googleMapsReady]);
 
   // Aggiorna marker quando cambiano i dettagli
   useEffect(() => {
@@ -103,8 +121,8 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     setError(null);
 
     try {
-      const response = await axios.get<{ predictions: PlacePrediction[] }>(
-        `${import.meta.env.VITE_API_URL}/address/autocomplete`,
+      const response = await axiosInstance.get<{ predictions: PlacePrediction[] }>(
+        '/buildings/address/autocomplete',
         {
           params: { q: input },
         }
@@ -127,8 +145,8 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     setError(null);
 
     try {
-      const response = await axios.get<AddressDetailsResponse>(
-        `${import.meta.env.VITE_API_URL}/address/details/${placeId}`
+      const response = await axiosInstance.get<AddressDetailsResponse>(
+        `/buildings/address/details/${placeId}`
       );
 
       setSelectedDetails(response.data);

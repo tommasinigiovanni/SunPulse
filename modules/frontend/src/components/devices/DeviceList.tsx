@@ -285,7 +285,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({
                 xl={viewMode === 'grid' ? 6 : 24}
               >
                 <DeviceCard
-                  device={device}
+                  device={device as Device}
                   onClick={onDeviceClick}
                   compact={compact || viewMode === 'list'}
                 />

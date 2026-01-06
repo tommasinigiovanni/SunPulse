@@ -11,6 +11,7 @@ import uvicorn
 from .config.settings import get_settings
 from .api.v1.router import api_router
 from .services.database import init_db, get_db_session, get_async_engine
+from .database import init_sync_db, close_sync_db
 from .services.audit_service import get_audit_service
 from .middleware.audit_middleware import AuditMiddleware
 from .utils.health import HealthChecker
@@ -97,11 +98,19 @@ async def startup_event():
     # Inizializza SQLAlchemy engine e crea tabelle mancanti
     await get_async_engine()
     logger.info("SQLAlchemy engine e tabelle inizializzate")
+    
+    # Inizializza database sincrono per FastAPI Depends
+    init_sync_db()
+    logger.info("Synchronous database initialized for FastAPI dependencies")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Operazioni di chiusura"""
     logger.info("Chiusura SunPulse Backend...")
+    
+    # Chiudi database sincrono
+    close_sync_db()
+    logger.info("Synchronous database closed")
 
 @app.get("/")
 async def root():

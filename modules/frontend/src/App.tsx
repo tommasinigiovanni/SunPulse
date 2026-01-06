@@ -11,7 +11,8 @@ import {
   BarChartOutlined,
   SettingOutlined,
   BellOutlined,
-  AuditOutlined
+  AuditOutlined,
+  HomeOutlined
 } from '@ant-design/icons';
 import routerBindings from "@refinedev/react-router-v6";
 
@@ -31,6 +32,8 @@ import { Analytics } from './pages/Analytics';
 import { Alarms } from './pages/Alarms';
 import { Settings } from './pages/Settings';
 import { Audit } from './pages/Audit';
+import { Buildings } from './pages/Buildings';
+import BuildingOnboarding from './pages/BuildingOnboarding';
 import { DeviceList } from './components/devices/DeviceList';
 
 // Utils
@@ -211,6 +214,14 @@ const AppContent: React.FC = () => {
           }
         },
         {
+          name: "buildings",
+          list: "/buildings",
+          meta: {
+            icon: <HomeOutlined />,
+            label: "Edifici"
+          }
+        },
+        {
           name: "analytics",
           list: "/analytics", 
           meta: { 
@@ -259,6 +270,18 @@ const AppContent: React.FC = () => {
         >
           {/* Dashboard principale */}
           <Route index element={<Dashboard />} />
+          
+          {/* Gestione edifici */}
+          <Route 
+            path="/buildings" 
+            element={<Buildings />} 
+          />
+          
+          {/* Onboarding edificio */}
+          <Route 
+            path="/onboarding/building" 
+            element={<BuildingOnboarding />} 
+          />
           
           {/* Gestione dispositivi */}
           <Route 

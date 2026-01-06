@@ -15,6 +15,7 @@ export interface Building {
   created_at: string;
   updated_at?: string;
   created_by: number;
+  current_weather?: BuildingWeather;
 }
 
 export interface AddressComponents {

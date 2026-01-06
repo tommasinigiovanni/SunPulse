@@ -25,7 +25,7 @@ export const useDevices = (options: UseDevicesOptions = {}) => {
       .filter(([_, value]) => value !== undefined && value !== null)
       .map(([field, value]) => ({
         field,
-        operator: Array.isArray(value) ? "in" : "eq",
+        operator: Array.isArray(value) ? ("in" as const) : ("eq" as const),
         value,
       })) : [];
     
@@ -33,7 +33,7 @@ export const useDevices = (options: UseDevicesOptions = {}) => {
     if (buildingId) {
       baseFilters.push({
         field: 'building_id',
-        operator: 'eq',
+        operator: "eq" as const,
         value: buildingId,
       });
     }
